@@ -14,6 +14,21 @@ find_package(OpenCV CONFIG REQUIRED COMPONENTS core imgproc imgcodecs)
 find_package(Ceres CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 
+# Núcleo reutilizable por los Sprints 2-4.
+add_library(scanner_core STATIC
+  src/quality.cpp
+)
+target_include_directories(scanner_core PUBLIC src)
+target_link_libraries(scanner_core PUBLIC opencv_core opencv_imgproc opencv_imgcodecs)
+
+enable_testing()
+add_executable(scanner_tests
+  tests/test_quality.cpp
+)
+target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
+include(GoogleTest)
+gtest_discover_tests(scanner_tests DISCOVERY_MODE PRE_TEST)
+
 # Spike SP-0: verifica que OpenCV y Ceres compilan y enlazan.
 add_executable(spike_main spike/spike_main.cpp)
 target_link_libraries(spike_main PRIVATE opencv_core opencv_imgproc opencv_imgcodecs Ceres::ceres)
