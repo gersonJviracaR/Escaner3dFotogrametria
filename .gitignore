@@ -1,0 +1,30 @@
+# Compilación del servidor C++
+server/build/
+server/vcpkg_installed/
+out/
+.vs/
+*.user
+CMakeUserPresets.json
+
+# Datos de sesiones y artefactos
+sessions/
+/data/
+dist/
+*.apk
+*.aab
+
+# Flutter / Android
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/android/local.properties
+mobile/android/.gradle/
+mobile/android/app/debug/
+mobile/android/app/release/
+*.iml
+.idea/
+
+# Configuración local (rutas o IPs propias)
+server/config.local.json
+*.local.json
