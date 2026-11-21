@@ -11,7 +11,7 @@ Rama: `sprint-2/epic-2-geometria-epipolar`. Estados: Pendiente / En curso / Hech
 | HU-09 | Como operador quiero emparejar descriptores entre pares de fotos con ratio test. | 5 | Alta | Hecha con pruebas verdes |
 | HU-10 | Como operador quiero emparejar solo vistas vecinas (según la orientación registrada) para reducir el cómputo. | 2 | Media | Hecha con pruebas verdes |
 | HU-11 | Como operador quiero estimar F con RANSAC y obtener E con K para validar la geometría de cada par. | 5 | Alta | Hecha con pruebas verdes |
-| HU-12 | Como operador quiero rechazar pares con desviación epipolar mayor al umbral para descartar falsos emparejamientos. | 3 | Alta | Pendiente |
+| HU-12 | Como operador quiero rechazar pares con desviación epipolar mayor al umbral para descartar falsos emparejamientos. | 3 | Alta | En curso (validación hecha; falta el reporte de la sesión) |
 
 **Total:** 20 puntos.
 

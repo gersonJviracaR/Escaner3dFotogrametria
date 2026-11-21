@@ -8,6 +8,7 @@
 
 #include <opencv2/core.hpp>
 
+#include <string>
 #include <vector>
 
 // Iteraciones máximas de RANSAC (el valor por defecto de OpenCV, 1000, no basta
@@ -35,9 +36,18 @@ struct PairGeometry {
   double inlier_ratio = 0;
   double mean_sampson_px = 0;  // media de la distancia de Sampson sobre los inliers
   std::vector<int> inliers;    // posiciones en los vectores de entrada
+  // HU-12: validación del par. Un par rechazado no pasa al Sprint 3.
+  bool accepted = false;
+  std::vector<std::string> reasons;
 };
 
+// Motivos de rechazo (HU-12), en este orden: "f_no_estimada", "pocos_inliers"
+// (n_inliers < min_inliers), "razon_inliers_baja" (inlier_ratio < min_inlier_ratio).
+// Vacío si el par es válido.
+std::vector<std::string> rejectionReasons(bool f_estimated, int n_inliers, double inlier_ratio,
+                                          const MatchingParams& params);
+
 // F con cv::findFundamentalMat (FM_RANSAC, ransac_threshold_px, ransac_confidence),
-// luego inliers recalculados con sampsonDistance <= ransac_threshold_px.
+// luego inliers recalculados con sampsonDistance <= ransac_threshold_px, y validación.
 PairGeometry estimatePairGeometry(const std::vector<cv::Point2f>& pts_i, const std::vector<cv::Point2f>& pts_j,
                                   const cv::Matx33d& K_i, const cv::Matx33d& K_j, const MatchingParams& params);

@@ -40,19 +40,29 @@ cv::Matx33d essentialFromFundamental(const cv::Matx33d& F, const cv::Matx33d& K,
   return U * cv::Matx33d::diag({s, s, 0.0}) * Vt;
 }
 
-PairGeometry estimatePairGeometry(const std::vector<cv::Point2f>& pts_i, const std::vector<cv::Point2f>& pts_j,
-                                  const cv::Matx33d& K_i, const cv::Matx33d& K_j, const MatchingParams& params) {
-  PairGeometry g;
-  g.n_matches = static_cast<int>(pts_i.size());
+std::vector<std::string> rejectionReasons(bool f_estimated, int n_inliers, double inlier_ratio,
+                                          const MatchingParams& params) {
+  std::vector<std::string> reasons;
+  if (!f_estimated) reasons.emplace_back("f_no_estimada");
+  if (n_inliers < params.min_inliers) reasons.emplace_back("pocos_inliers");
+  if (inlier_ratio < params.min_inlier_ratio) reasons.emplace_back("razon_inliers_baja");
+  return reasons;
+}
+
+namespace {
+
+// F, E e inliers; deja f_estimated = false si F no se pudo estimar.
+void fitGeometry(PairGeometry& g, const std::vector<cv::Point2f>& pts_i, const std::vector<cv::Point2f>& pts_j,
+                 const cv::Matx33d& K_i, const cv::Matx33d& K_j, const MatchingParams& params) {
   // Con 7 puntos el algoritmo de 7 puntos da hasta 3 soluciones: se exige al menos 8.
-  if (pts_i.size() != pts_j.size() || pts_i.size() < 8) return g;
+  if (pts_i.size() != pts_j.size() || pts_i.size() < 8) return;
 
   cv::Mat F_cv = cv::findFundamentalMat(pts_i, pts_j, cv::FM_RANSAC, params.ransac_threshold_px,
                                         params.ransac_confidence, kRansacMaxIters, cv::noArray());
-  if (F_cv.rows != 3 || F_cv.cols != 3) return g;
+  if (F_cv.rows != 3 || F_cv.cols != 3) return;
   cv::Matx33d F;
   F_cv.convertTo(cv::Mat(F, false), CV_64F);
-  if (!cv::checkRange(cv::Mat(F, false))) return g;
+  if (!cv::checkRange(cv::Mat(F, false))) return;
 
   cv::Matx31d w;
   cv::SVD::compute(F, w);
@@ -73,5 +83,16 @@ PairGeometry estimatePairGeometry(const std::vector<cv::Point2f>& pts_i, const s
   g.n_inliers = static_cast<int>(g.inliers.size());
   g.inlier_ratio = static_cast<double>(g.n_inliers) / g.n_matches;
   g.mean_sampson_px = g.n_inliers > 0 ? sum / g.n_inliers : 0.0;
+}
+
+}  // namespace
+
+PairGeometry estimatePairGeometry(const std::vector<cv::Point2f>& pts_i, const std::vector<cv::Point2f>& pts_j,
+                                  const cv::Matx33d& K_i, const cv::Matx33d& K_j, const MatchingParams& params) {
+  PairGeometry g;
+  g.n_matches = static_cast<int>(pts_i.size());
+  fitGeometry(g, pts_i, pts_j, K_i, K_j, params);
+  g.reasons = rejectionReasons(g.f_estimated, g.n_inliers, g.inlier_ratio, params);
+  g.accepted = g.reasons.empty();
   return g;
 }

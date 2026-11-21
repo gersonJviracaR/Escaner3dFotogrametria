@@ -164,3 +164,52 @@ TEST(Epipolar, EnforceRank2ZeroesSmallestSingularValue) {
   EXPECT_NEAR(after[1], before[1], 1e-9);
   EXPECT_LT(after[2], 1e-12);
 }
+
+// ---------- HU-12 ----------
+
+TEST(PairValidation, BoundaryCases) {
+  // justo 30 inliers: aceptado; 29: rechazado
+  EXPECT_TRUE(rejectionReasons(true, 30, 0.5, kDefaults).empty());
+  EXPECT_EQ(rejectionReasons(true, 29, 0.5, kDefaults), std::vector<std::string>{"pocos_inliers"});
+  // razón 0,25: aceptado; menor: rechazado
+  EXPECT_TRUE(rejectionReasons(true, 100, 0.25, kDefaults).empty());
+  EXPECT_EQ(rejectionReasons(true, 100, 0.2499, kDefaults), std::vector<std::string>{"razon_inliers_baja"});
+}
+
+TEST(PairValidation, SeveralReasonsAtOnce) {
+  EXPECT_EQ(rejectionReasons(true, 10, 0.1, kDefaults),
+            (std::vector<std::string>{"pocos_inliers", "razon_inliers_baja"}));
+  EXPECT_EQ(rejectionReasons(false, 0, 0.0, kDefaults),
+            (std::vector<std::string>{"f_no_estimada", "pocos_inliers", "razon_inliers_baja"}));
+}
+
+TEST(PairValidation, ThresholdsComeFromParams) {
+  MatchingParams p;
+  p.min_inliers = 10;
+  p.min_inlier_ratio = 0.05;
+  EXPECT_TRUE(rejectionReasons(true, 10, 0.05, p).empty());
+}
+
+TEST(PairValidation, RandomCorrespondencesAreRejected) {
+  const SyntheticScene s = makeScene(0, 0.0, 300);
+  const PairGeometry g = estimatePairGeometry(s.pts1, s.pts2, s.K, s.K, kDefaults);
+  EXPECT_FALSE(g.accepted);
+  EXPECT_FALSE(g.reasons.empty());
+  EXPECT_LT(g.n_inliers, kDefaults.min_inliers);
+}
+
+TEST(PairValidation, GoodPairIsAccepted) {
+  const SyntheticScene s = makeScene(200, 0.3, 60);
+  const PairGeometry g = estimatePairGeometry(s.pts1, s.pts2, s.K, s.K, kDefaults);
+  EXPECT_TRUE(g.accepted);
+  EXPECT_TRUE(g.reasons.empty());
+}
+
+TEST(PairValidation, TooFewCorrespondencesMeansFNotEstimated) {
+  const SyntheticScene s = makeScene(7, 0.3, 0);
+  const PairGeometry g = estimatePairGeometry(s.pts1, s.pts2, s.K, s.K, kDefaults);
+  EXPECT_FALSE(g.f_estimated);
+  EXPECT_FALSE(g.accepted);
+  EXPECT_EQ(g.reasons.front(), "f_no_estimada");
+  EXPECT_TRUE(g.inliers.empty());
+}
