@@ -19,6 +19,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 # Núcleo reutilizable por los Sprints 2-4.
 add_library(scanner_core STATIC
   src/atomic_file.cpp
+  src/camera_model.cpp
   src/config.cpp
   src/epipolar.cpp
   src/features.cpp
@@ -33,12 +34,14 @@ add_library(scanner_core STATIC
   src/reconstruction_params.cpp
   src/session_matching.cpp
   src/session_store.cpp
+  src/triangulation.cpp
 )
 target_include_directories(scanner_core PUBLIC src)
 target_link_libraries(scanner_core PUBLIC
   opencv_core opencv_imgproc opencv_imgcodecs opencv_features2d opencv_calib3d
   httplib::httplib
   nlohmann_json::nlohmann_json
+  Ceres::ceres
 )
 
 add_executable(scanner_server src/main.cpp)
@@ -53,6 +56,7 @@ target_link_libraries(scanner_match PRIVATE scanner_core)
 
 enable_testing()
 add_executable(scanner_tests
+  tests/test_camera_model.cpp
   tests/test_config.cpp
   tests/test_epipolar.cpp
   tests/test_features.cpp
@@ -65,6 +69,7 @@ add_executable(scanner_tests
   tests/test_quality.cpp
   tests/test_session_matching.cpp
   tests/test_session_store.cpp
+  tests/test_triangulation.cpp
 )
 target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
 target_compile_definitions(scanner_tests PRIVATE

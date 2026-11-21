@@ -7,7 +7,7 @@ Rama: `sprint-3/epic-3-reconstruccion-dispersa`. Estados: Pendiente / En curso /
 | ID | Historia | Pts | Prioridad | Estado |
 |---|---|---|---|---|
 | HU-13 | Como operador quiero elegir un par inicial y recuperar su pose relativa (R,t). | 3 | Alta | Pendiente |
-| HU-14 | Como operador quiero triangular puntos 3D con coordenadas homogéneas (DLT). | 3 | Alta | Pendiente |
+| HU-14 | Como operador quiero triangular puntos 3D con coordenadas homogéneas (DLT). | 3 | Alta | Hecha con pruebas verdes |
 | HU-15 | Como operador quiero registrar las demás cámaras con PnP-RANSAC y triangular nuevos puntos. | 5 | Alta | Pendiente |
 | HU-16 | Como operador quiero refinar poses y puntos con bundle adjustment en Ceres. | 5 | Alta | Pendiente |
 | HU-17 | Como operador quiero descartar puntos visibles en menos de 3 cámaras o con error de reproyección alto. | 3 | Alta | Pendiente |
