@@ -13,17 +13,37 @@ endif()
 find_package(OpenCV CONFIG REQUIRED COMPONENTS core imgproc imgcodecs)
 find_package(Ceres CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
+find_package(httplib CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 # Núcleo reutilizable por los Sprints 2-4.
 add_library(scanner_core STATIC
+  src/config.cpp
+  src/http_server.cpp
+  src/manifest.cpp
   src/quality.cpp
+  src/session_store.cpp
 )
 target_include_directories(scanner_core PUBLIC src)
-target_link_libraries(scanner_core PUBLIC opencv_core opencv_imgproc opencv_imgcodecs)
+target_link_libraries(scanner_core PUBLIC
+  opencv_core opencv_imgproc opencv_imgcodecs
+  httplib::httplib
+  nlohmann_json::nlohmann_json
+)
+
+add_executable(scanner_server src/main.cpp)
+target_link_libraries(scanner_server PRIVATE scanner_core)
+add_custom_command(TARGET scanner_server POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:scanner_server>/config.default.json)
 
 enable_testing()
 add_executable(scanner_tests
+  tests/test_config.cpp
+  tests/test_http_integration.cpp
+  tests/test_manifest.cpp
   tests/test_quality.cpp
+  tests/test_session_store.cpp
 )
 target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
 include(GoogleTest)
