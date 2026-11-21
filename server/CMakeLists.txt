@@ -41,6 +41,7 @@ add_library(scanner_core STATIC
   src/sfm_types.cpp
   src/tracks.cpp
   src/triangulation.cpp
+  src/visibility.cpp
 )
 target_include_directories(scanner_core PUBLIC src)
 target_link_libraries(scanner_core PUBLIC
@@ -80,6 +81,7 @@ add_executable(scanner_tests
   tests/test_session_store.cpp
   tests/test_tracks.cpp
   tests/test_triangulation.cpp
+  tests/test_visibility.cpp
 )
 target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
 target_compile_definitions(scanner_tests PRIVATE

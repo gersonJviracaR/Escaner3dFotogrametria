@@ -155,7 +155,8 @@ TEST(BundleAdjustment, IncrementalPipelineRunsBundleAdjustment) {
   const SfmResult r = runIncrementalSfm(s.input, ReconstructionParams{});  // ba_every = 1
   EXPECT_EQ(r.rec.registeredCount(), 12);
   ASSERT_FALSE(r.ba_runs.empty());
-  EXPECT_EQ(r.ba_runs.back().stage, "final");
+  EXPECT_EQ(r.ba_runs[r.ba_runs.size() - 2].stage, "final");
+  EXPECT_EQ(r.ba_runs.back().stage, "final_2");
   EXPECT_LT(r.ba_runs.back().rms_after_px, 0.6);
   for (const auto& [img, cam] : r.rec.cameras) EXPECT_NEAR(quaternionNorm(cam.pose.q), 1.0, 1e-9);
 }

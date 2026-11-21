@@ -4,6 +4,7 @@
 #include "bundle_adjustment.h"
 #include "initialization.h"
 #include "reconstruction_params.h"
+#include "visibility.h"
 #include "sfm_types.h"
 
 #include <functional>
@@ -21,6 +22,8 @@ struct SfmResult {
   Reconstruction rec;
   InitialPair init;
   std::vector<BundleReport> ba_runs;  // en orden de ejecución
+  FilterStats filter_first;           // filtrado tras el BA final (HU-17)
+  FilterStats filter_final;           // filtrado tras el segundo BA
 };
 
 // Flujo de la sección 3.2: par inicial, triangulación, registro incremental con PnP.
