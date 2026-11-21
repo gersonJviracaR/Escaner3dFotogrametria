@@ -1,5 +1,6 @@
 // Pruebas de HU-07 (extracción SIFT) y HU-08 (normalización de contraste).
 #include "features.h"
+#include "matching.h"
 #include "test_images.h"
 
 #include <gtest/gtest.h>
@@ -174,18 +175,11 @@ TwoViews twoViews() {
 }
 
 // Correspondencias con ratio test (0,75) que respetan la transformación conocida.
-// Se empareja aquí directamente con OpenCV para no depender de HU-09.
 int correctMatches(const ImageFeatures& a, const ImageFeatures& b, const cv::Matx23d& t) {
-  cv::BFMatcher matcher(cv::NORM_L2);
-  std::vector<std::vector<cv::DMatch>> knn;
-  matcher.knnMatch(a.descriptors, b.descriptors, knn, 2);
   int correct = 0;
-  for (const auto& m : knn) {
-    if (m.size() < 2 || m[0].distance >= 0.75f * m[1].distance) continue;
-    const cv::Point2f pa = a.keypoints[m[0].queryIdx].pt;
-    const cv::Point2f pb = b.keypoints[m[0].trainIdx].pt;
-    const cv::Vec2d expected = t * cv::Vec3d(pa.x, pa.y, 1.0);
-    if (std::hypot(expected[0] - pb.x, expected[1] - pb.y) <= 3.0) ++correct;
+  for (const FeatureMatch& m : matchFeatures(a, b, 0.75)) {
+    const cv::Vec2d expected = t * cv::Vec3d(m.point_a.x, m.point_a.y, 1.0);
+    if (std::hypot(expected[0] - m.point_b.x, expected[1] - m.point_b.y) <= 3.0) ++correct;
   }
   return correct;
 }
