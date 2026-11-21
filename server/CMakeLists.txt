@@ -32,9 +32,12 @@ add_library(scanner_core STATIC
   src/matching_report.cpp
   src/pairing.cpp
   src/quality.cpp
+  src/reconstruction.cpp
   src/reconstruction_params.cpp
+  src/registration.cpp
   src/session_matching.cpp
   src/session_store.cpp
+  src/sfm_types.cpp
   src/tracks.cpp
   src/triangulation.cpp
 )
@@ -70,6 +73,7 @@ add_executable(scanner_tests
   tests/test_matching_report.cpp
   tests/test_pairing.cpp
   tests/test_quality.cpp
+  tests/test_registration.cpp
   tests/test_session_matching.cpp
   tests/test_session_store.cpp
   tests/test_tracks.cpp
