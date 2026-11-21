@@ -22,6 +22,6 @@ Rama: `sprint-3/epic-3-reconstruccion-dispersa`. Estados: Pendiente / En curso /
 | Paso 0: grafo de vistas de la sesión `tenis` con `scanner_match` por defecto. **No conexo** (30 + 4 vistas); el usuario decidió seguir con el componente de 30 vistas | Hecha |
 | Sección `reconstruction` en `config.default.json` y en la lectura de configuración (con pruebas) | Hecha |
 | Modelo de cámara (HU-14), pistas (*tracks*) | Hecha |
-| Herramienta `scanner_reconstruct`, `reconstruction.json`, `reconstruction_report.json`, `sparse_cloud.ply` | Pendiente |
+| Herramienta `scanner_reconstruct`, `reconstruction.json`, `reconstruction_report.json`, `sparse_cloud.ply` | Hecha |
 | Prueba con la sesión `20261121-142259-tenis` | Pendiente |
 | `docs/formatos.md`, `README.md`, `docs/sprint3-reporte.md` | Pendiente |

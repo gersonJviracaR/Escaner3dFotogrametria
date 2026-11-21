@@ -39,6 +39,7 @@ add_library(scanner_core STATIC
   src/reconstruction_report.cpp
   src/registration.cpp
   src/session_matching.cpp
+  src/session_reconstruction.cpp
   src/session_store.cpp
   src/sfm_types.cpp
   src/tracks.cpp
@@ -63,6 +64,13 @@ add_custom_command(TARGET scanner_server POST_BUILD
 add_executable(scanner_match tools/scanner_match.cpp)
 target_link_libraries(scanner_match PRIVATE scanner_core)
 
+# Sprint 3: reconstrucción dispersa y bundle adjustment de una sesión ya emparejada.
+add_executable(scanner_reconstruct tools/scanner_reconstruct.cpp)
+target_link_libraries(scanner_reconstruct PRIVATE scanner_core)
+add_custom_command(TARGET scanner_reconstruct POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:scanner_reconstruct>/config.default.json)
+
 enable_testing()
 add_executable(scanner_tests
   tests/test_bundle_adjustment.cpp
@@ -82,6 +90,7 @@ add_executable(scanner_tests
   tests/test_reconstruction_report.cpp
   tests/test_registration.cpp
   tests/test_session_matching.cpp
+  tests/test_session_reconstruction.cpp
   tests/test_session_store.cpp
   tests/test_tracks.cpp
   tests/test_triangulation.cpp
