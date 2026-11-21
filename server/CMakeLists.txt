@@ -25,6 +25,7 @@ add_library(scanner_core STATIC
   src/manifest.cpp
   src/matching.cpp
   src/matching_params.cpp
+  src/pairing.cpp
   src/quality.cpp
   src/session_store.cpp
 )
@@ -48,6 +49,7 @@ add_executable(scanner_tests
   tests/test_http_integration.cpp
   tests/test_manifest.cpp
   tests/test_matching.cpp
+  tests/test_pairing.cpp
   tests/test_quality.cpp
   tests/test_session_store.cpp
 )
