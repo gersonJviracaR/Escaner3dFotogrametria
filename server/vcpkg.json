@@ -1,0 +1,12 @@
+{
+  "name": "escaner3d-server",
+  "version": "0.1.0",
+  "dependencies": [
+    { "name": "opencv4", "default-features": false, "features": ["jpeg", "png"] },
+    "ceres",
+    "eigen3",
+    "gtest",
+    "cpp-httplib",
+    "nlohmann-json"
+  ]
+}
