@@ -20,6 +20,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 add_library(scanner_core STATIC
   src/atomic_file.cpp
   src/config.cpp
+  src/features.cpp
   src/http_server.cpp
   src/manifest.cpp
   src/matching_params.cpp
@@ -42,6 +43,7 @@ add_custom_command(TARGET scanner_server POST_BUILD
 enable_testing()
 add_executable(scanner_tests
   tests/test_config.cpp
+  tests/test_features.cpp
   tests/test_http_integration.cpp
   tests/test_manifest.cpp
   tests/test_quality.cpp
