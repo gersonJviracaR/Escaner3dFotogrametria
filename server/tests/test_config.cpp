@@ -60,6 +60,24 @@ TEST(MatchingConfig, DefaultsMatchSprint2Spec) {
   EXPECT_DOUBLE_EQ(p.fallback_focal_factor, 1.2);
 }
 
+TEST(MatchingConfig, NeighborIndexWindowDefaultsAndSprint2Mode) {
+  // Por defecto, la selección del Sprint 2 (solo por orientación): en la sesión tenis la
+  // ventana 3 con cierre no agregó pares y se revirtió (criterio de salida del Sprint 3).
+  const MatchingParams p;
+  EXPECT_EQ(p.neighbor_index_window, 0);
+  EXPECT_FALSE(p.ring_closure);
+  const ServerConfig c = applyConfigJson(
+      ServerConfig{}, json::parse(R"({"matching":{"neighbor_index_window":3,"ring_closure":true}})"));
+  EXPECT_EQ(c.matching.neighbor_index_window, 3);
+  EXPECT_TRUE(c.matching.ring_closure);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"neighbor_index_window":-1}})")),
+               ConfigError);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"neighbor_index_window":11}})")),
+               ConfigError);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"ring_closure":1}})")), ConfigError);
+  EXPECT_EQ(applyMatchingOverride(MatchingParams{}, "--neighbor-index-window", "0").neighbor_index_window, 0);
+}
+
 TEST(MatchingConfig, PartialOverrideKeepsOtherValues) {
   const ServerConfig c =
       applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"ratio":0.8,"clahe":false}})"));
@@ -98,6 +116,60 @@ TEST(MatchingConfig, CommandLineOverrides) {
   EXPECT_THROW(applyMatchingOverride(p, "--ratio", "2"), std::invalid_argument);
   EXPECT_TRUE(isMatchingOverride("--work-long-side"));
   EXPECT_FALSE(isMatchingOverride("--session"));
+}
+
+TEST(ReconstructionConfig, DefaultsMatchSprint3Spec) {
+  const ReconstructionParams p = ServerConfig{}.reconstruction;
+  EXPECT_TRUE(p.exclude_rejected_photos);
+  EXPECT_EQ(p.init_min_inliers, 100);
+  EXPECT_DOUBLE_EQ(p.init_min_median_triangulation_angle_deg, 5.0);
+  EXPECT_DOUBLE_EQ(p.tri_min_angle_deg, 1.5);
+  EXPECT_DOUBLE_EQ(p.max_reproj_error_px, 2.0);
+  EXPECT_DOUBLE_EQ(p.pnp_ransac_threshold_px, 3.0);
+  EXPECT_DOUBLE_EQ(p.pnp_confidence, 0.999);
+  EXPECT_EQ(p.pnp_min_inliers, 20);
+  EXPECT_EQ(p.min_views, 3);
+  EXPECT_EQ(p.ba_every, 1);
+  EXPECT_EQ(p.ba_max_iterations, 100);
+  EXPECT_DOUBLE_EQ(p.huber_delta_px, 1.0);
+  EXPECT_TRUE(p.refine_focal);
+  EXPECT_TRUE(p.refine_distortion);
+}
+
+TEST(ReconstructionConfig, PartialOverrideKeepsOtherValues) {
+  const ServerConfig c = applyConfigJson(
+      ServerConfig{}, json::parse(R"({"reconstruction":{"min_views":4,"refine_distortion":false}})"));
+  EXPECT_EQ(c.reconstruction.min_views, 4);
+  EXPECT_FALSE(c.reconstruction.refine_distortion);
+  EXPECT_EQ(c.reconstruction.pnp_min_inliers, 20);
+  EXPECT_DOUBLE_EQ(c.matching.ratio, 0.75);
+}
+
+TEST(ReconstructionConfig, InvalidValuesThrow) {
+  auto apply = [](const char* text) { return applyConfigJson(ServerConfig{}, json::parse(text)); };
+  EXPECT_THROW(apply(R"({"reconstruction":{"min_views":1}})"), ConfigError);  // al menos 2
+  EXPECT_THROW(apply(R"({"reconstruction":{"pnp_min_inliers":0}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"reconstruction":{"pnp_confidence":1.0}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"reconstruction":{"max_reproj_error_px":0}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"reconstruction":{"tri_min_angle_deg":-1}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"reconstruction":{"refine_focal":1}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"reconstruction":{"ba_evry":2}})"), ConfigError);  // clave desconocida
+  EXPECT_THROW(apply(R"({"reconstruction":"x"})"), ConfigError);
+}
+
+TEST(ReconstructionConfig, DefaultConfigFileMatchesCodeDefaults) {
+  const ServerConfig c = applyConfigFile(ServerConfig{}, ESCANER3D_DEFAULT_CONFIG);
+  EXPECT_EQ(toJson(c.reconstruction), toJson(ReconstructionParams{}));
+}
+
+TEST(ReconstructionConfig, CommandLineOverrides) {
+  ReconstructionParams p = applyReconstructionOverride(ReconstructionParams{}, "--max-reproj-error-px", "3");
+  p = applyReconstructionOverride(p, "--refine-distortion", "false");
+  EXPECT_DOUBLE_EQ(p.max_reproj_error_px, 3.0);
+  EXPECT_FALSE(p.refine_distortion);
+  EXPECT_TRUE(isReconstructionOverride("--ba-every"));
+  EXPECT_FALSE(isReconstructionOverride("--ratio"));
+  EXPECT_THROW(applyReconstructionOverride(p, "--min-views", "x"), std::invalid_argument);
 }
 
 TEST(Config, CommandLineErrors) {

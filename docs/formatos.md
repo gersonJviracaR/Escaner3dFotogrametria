@@ -1,4 +1,6 @@
-# Formatos de archivo del Epic 2 (Sprint 2)
+# Formatos de archivo de los Epics 2 y 3 (Sprints 2 y 3)
+
+Epic 2 (`scanner_match`): secciones 1 a 4. Epic 3 (`scanner_reconstruct`): secciones 5 a 9.
 
 `scanner_match` escribe tres tipos de archivo dentro de la carpeta de cada sesión (`sessions\<id>\`, ignorada por git):
 
@@ -128,3 +130,137 @@ Cada imagen muestra las dos fotos lado a lado, reducidas a 1600 px en el lado ma
 | `accepted_iii_jjj.jpg` | el par aceptado con menor razón de inliers (el más débil) |
 | `rejected_iii_jjj.jpg` | el par rechazado con más inliers (el más cercano a pasar) |
 | `far_iii_jjj.jpg` | solo si no hubo rechazados: el par de mayor ángulo, evaluado aparte y fuera de `pairs` |
+
+### Selección de pares (opción agregada en el Sprint 3)
+
+La sección `matching` tiene dos claves más. Ambas solo amplían la selección de pares: no cambian el ratio test, `ransac_threshold_px`, `min_inliers` ni la calidad. Las dos aparecen también en `params` del `matching_report.json`.
+
+| Clave | Por defecto | Efecto |
+|---|---|---|
+| `neighbor_index_window` | 0 | Además de los pares por orientación (HU-10), cada vista se empareja con las N siguientes según su posición entre las fotos usadas. Las fotos excluidas no dejan huecos. Va de 0 a 10. |
+| `ring_closure` | false | Con la ventana activa, la cuenta da la vuelta: las últimas vistas se emparejan con las primeras. |
+
+Con `0` / `false` (los valores por defecto) la selección es exactamente la del Sprint 2. El motivo y el resultado de la prueba están en `docs/sprint3-reporte.md`.
+
+---
+
+# Epic 3 (Sprint 3): reconstrucción dispersa
+
+`scanner_reconstruct` lee de la sesión:
+- `manifest.json`;
+- `matching_report.json`;
+- los `matches\pair_###_###.csv` de los pares aceptados.
+
+Escribe en `sessions\<id>\reconstruction\`:
+
+```
+reconstruction\
+  reconstruction.json          cámaras, intrínsecos y nube (entrada del Sprint 4)
+  reconstruction_report.json   errores por cámara antes/después del BA, puntos, tiempos
+  sparse_cloud.ply             nube con color y centros de cámara (solo para verificar)
+  debug_top.jpg, debug_side.jpg   solo con --debug
+```
+
+Todos los archivos se escriben de forma segura (temporal + renombrado).
+
+## 5. Convenciones
+
+- **Cuaterniones** `[w, x, y, z]` de Hamilton, el mismo orden que el manifiesto, COLMAP y Ceres (`ceres::QuaternionToRotation`, `ceres::QuaternionRotatePoint`). No es el orden de almacenamiento de `Eigen::Quaternion`.
+- **Pose mundo → cámara:** `x_cam = R·X + t`, con centro de la cámara `C = −Rᵀ·t`.
+  - Ejes de la cámara: x a la derecha, y hacia abajo, z hacia adelante.
+  - Es la convención de COLMAP, lo que facilita la exportación del Sprint 4.
+- **Escala arbitraria (monocular).** Se fija con la distancia entre los centros del par inicial, que vale 1. Como el bundle adjustment solo fija una componente de la traslación de la segunda cámara, al final se reescala toda la reconstrucción para que esa distancia sea 1 exacta. La escala métrica es del Sprint 4 (HU-22).
+- **Origen:** la primera cámara del par inicial queda en el origen con rotación identidad.
+- **Píxeles:** imagen original sin aplicar la orientación EXIF; el centro del píxel (0, 0) está en (0, 0). Es la misma convención que `features\*.feat`.
+- **Modelo de cámara** (una sola cámara compartida):
+  - `a = x/z`, `b = y/z`, `r² = a² + b²`;
+  - `d = 1 + k1·r² + k2·r⁴`;
+  - `u = f·d·a + cx`, `v = f·d·b + cy`.
+  - El punto principal queda fijo en el centro de la imagen.
+
+## 6. `reconstruction.json` (versión de esquema 1)
+
+```json
+{
+  "schema_version": 1,
+  "session_id": "20261121-142259-tenis",
+  "generated_at": "2026-11-21T16:10:00-04:00",
+  "conventions": { "quaternion": "...", "pose": "...", "scale": "..." },
+  "params": { "...": "sección reconstruction usada" },
+  "intrinsics": { "model": "radial k1, k2; ...", "f": 3079.27, "k1": 0.105, "k2": -0.280,
+                  "cx": 2000, "cy": 1500, "width": 4000, "height": 3000 },
+  "cameras": [
+    { "index": 1, "registered": true, "reason": null,
+      "q": [1, 0, 0, 0], "t": [0, 0, 0], "center": [0, 0, 0] },
+    { "index": 2, "registered": true, "reason": null,
+      "q": [0.99617, 0.06181, -0.00481, 0.06160], "t": [0.00810, 0.86826, 0.49605],
+      "center": [-0.12262, -0.91483, -0.38477] },
+    { "index": 9, "registered": false, "reason": "componente_desconectado",
+      "q": null, "t": null, "center": null }
+  ],
+  "points": [
+    { "id": 0, "xyz": [0.7906, -0.6352, 7.7240], "rgb": [16, 26, 39], "track_length": 4, "error_px": 0.603,
+      "observations": [[1, 4498, 2316.526, 1246.062], [2, 4036, 2326.015, 1265.237],
+                       [4, 3389, 2274.410, 1916.583], [5, 3108, 2314.339, 1909.218]] }
+  ]
+}
+```
+
+**`cameras`** — todas las fotos candidatas, en orden de índice.
+- Las registradas traen `q`, `t` y `center` (este último es redundante, para leerlo cómodo).
+- Las no registradas traen `reason`, que puede ser:
+
+| Motivo | Significado |
+|---|---|
+| `pocas_correspondencias_2d3d` | menos de `pnp_min_inliers` correspondencias con puntos 3D al terminar el registro |
+| `pnp_fallido` | `solvePnPRansac` no encontró solución |
+| `pnp_pocos_inliers` | PnP con menos de `pnp_min_inliers` inliers |
+| `componente_desconectado` | la foto no está conectada con el par inicial en el grafo de pares aceptados |
+| `sin_par_inicial` | ningún par cumplió las condiciones de HU-13 |
+
+**`points`** — la nube final, ya filtrada por HU-17.
+- `rgb`: promedio de los píxeles de sus observaciones.
+- `track_length`: número de observaciones.
+- `error_px`: error de reproyección medio.
+- `observations`: lista de `[foto, índice del punto en features\img_###.feat, x, y]`.
+
+Al leer el archivo no se recuperan las pistas completas (`point.track = −1`). Hay prueba de ida y vuelta (`ReconstructionIo.RoundTripThroughFile`).
+
+## 7. `reconstruction_report.json` (versión de esquema 1)
+
+| Campo | Contenido |
+|---|---|
+| `params`, `solver` | Parámetros usados y resolvedor lineal de Ceres (`SPARSE_SCHUR` si hay biblioteca dispersa; si no, `DENSE_SCHUR`). |
+| `intrinsics.initial` / `.final` | `f`, `k1`, `k2`, `cx`, `cy` y el tamaño, antes (K del Sprint 2) y después del bundle adjustment. |
+| `initial_pair` | `i`, `j` y `evaluated`: cada par evaluado con `n_inliers`, `front_ratio`, `median_angle_deg` y `result` (`elegido`, `pocos_inliers`, `pocos_puntos_delante`, `angulo_mediano_bajo`). |
+| `excluded_photos` | Fotos fuera del flujo (`rechazada_calidad` y las excluidas por `scanner_match`). |
+| `cameras` | Por foto: `registered`, `reason`, `before` y `after` con `n`, `mean_px`, `rms_px` y `max_px` (`null` si no está registrada). |
+| `global` | `before` / `after` con la misma estructura, sobre todas las observaciones. |
+| `points` | `tracks` y `tracks_discarded_inconsistent`; `before_filter` y `after_filter`; detalle de los dos filtrados; `track_length` (mínimo, mediana, media y máximo). |
+| `bundle_adjustment` | Cada corrida: `stage` (`incremental`, `final`, `final_2`), `iterations`, costo inicial y final, RMS antes y después, `retriangulated`, `termination` y `time_ms`. |
+| `imu_consistency` | Por cada par de cámaras registradas consecutivas por índice, el ángulo de rotación relativa reconstruido frente a `2·acos|q_i·q_j|` del manifiesto. Incluye la media y el máximo de la diferencia absoluta. Es solo informativo. |
+| `ring_geometry` | Centroide de los centros de cámara y distancia de cada centro a él (media, desviación, mínimo y máximo). |
+| `timing_ms` | `load`, `tracks`, `reconstruction` (con los BA), `bundle_adjustment`, `colors`, `outputs` y `total`. |
+| `warnings`, `summary` | Avisos; cámaras candidatas, registradas y no registradas; puntos; RMS antes y después. |
+
+"Antes" y "después" del BA:
+- **"Antes"** es el estado justo antes del BA final, cuando termina la fase incremental. Como hay BA intermedios (`ba_every`), ese estado ya está parcialmente refinado.
+- **"Después"** es el estado tras el segundo BA y el filtrado final.
+
+Las pistas de solo 2 vistas existen durante la fase incremental y desaparecen en el filtrado (HU-17, `min_views` = 3). Por eso el error "después" se calcula sobre menos observaciones.
+
+## 8. `sparse_cloud.ply`
+
+Es un PLY ASCII 1.0 con `element vertex N` y las propiedades `float x, y, z` y `uchar red, green, blue`.
+- Los primeros vértices son los puntos de la nube, con su color.
+- Los últimos son los centros de las cámaras registradas, en magenta (255, 0, 255). Un comentario de la cabecera dice cuántos son.
+- Se abre en MeshLab o CloudCompare.
+- Sirve solo para verificar; no es la entrada del Sprint 4 (para eso está `reconstruction.json`).
+
+## 9. Imágenes de depuración (solo con `--debug`)
+
+Las dos imágenes son vistas ortográficas de la nube (con su color) y de las cámaras. Los ejes se obtienen por PCA de los centros de cámara.
+- **`debug_top.jpg`:** vista sobre el plano del anillo.
+- **`debug_side.jpg`:** vista con la normal del anillo hacia arriba. El signo de la normal es arbitrario.
+
+Cada cámara aparece como un círculo rojo con su índice y una línea que marca su eje óptico. El encuadre usa los percentiles 2–98 de los puntos y todas las cámaras.

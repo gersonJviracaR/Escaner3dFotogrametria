@@ -233,7 +233,11 @@ MatchingReport runSessionMatching(const fs::path& session_dir, const MatchingPar
   }
 
   // 2. Pares vecinos (HU-10).
-  const std::vector<ViewPair> pairs = selectNeighborPairs(orientations, params.max_angle_deg, params.max_neighbors);
+  // HU-10 (por orientación) más la ventana de vecinos por posición con cierre del anillo
+  // (opción del Sprint 3; por defecto neighbor_index_window = 0, igual que el Sprint 2).
+  const std::vector<ViewPair> pairs =
+      unionPairs(selectNeighborPairs(orientations, params.max_angle_deg, params.max_neighbors),
+                 selectIndexWindowPairs(orientations, params.neighbor_index_window, params.ring_closure));
   std::map<int, std::size_t> position;
   for (std::size_t k = 0; k < views.size(); ++k) position[views[k].report.index] = k;
   say(options, std::to_string(pairs.size()) + " pares vecinos de " +

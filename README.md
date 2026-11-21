@@ -18,18 +18,19 @@ Celular Android (Flutter)  ──HTTP/Wi-Fi local──▶  Servidor local en la
 |---|---|---|
 | 1 | Captura móvil y recepción en servidor local | **Completo** (ver [docs/sprint1-reporte.md](docs/sprint1-reporte.md)) |
 | 2 | Características y geometría epipolar | **Completo** (ver [docs/sprint2-reporte.md](docs/sprint2-reporte.md)) |
-| 3 | Reconstrucción dispersa y bundle adjustment | Pendiente |
+| 3 | Reconstrucción dispersa y bundle adjustment | **Completo**, con resultado parcial en la sesión real: 11 de 34 cámaras (ver [docs/sprint3-reporte.md](docs/sprint3-reporte.md)) |
 | 4 | Malla texturizada y exportación | Pendiente |
 
 ## Estructura
 
 ```
 server/    servidor C++17 (CMake + vcpkg): HTTP, sesiones, manifiesto, control de calidad;
-           tools/scanner_match.cpp (SIFT, pares vecinos, F y E por sesión)
+           tools/scanner_match.cpp (SIFT, pares vecinos, F y E por sesión);
+           tools/scanner_reconstruct.cpp (triangulación, PnP, bundle adjustment con Ceres)
 mobile/    app Flutter para Android (captura guiada y envío)
 scripts/   check-env.ps1, open-firewall.ps1, smoke-test.ps1 (PowerShell)
 docs/      entorno.md, api.md, formatos.md, sprint1-backlog.md, sprint1-reporte.md,
-           sprint2-backlog.md, sprint2-reporte.md
+           sprint2-backlog.md, sprint2-reporte.md, sprint3-backlog.md, sprint3-reporte.md
 ```
 
 ## Requisitos (Windows 11)
@@ -112,6 +113,38 @@ Imprime una tabla por par y un resumen con los tiempos. En la sesión deja:
 - `matching_report.json`.
 
 Los formatos están en [docs/formatos.md](docs/formatos.md).
+
+Desde el Sprint 3 hay dos opciones que amplían la selección de pares: `--neighbor-index-window N` y `--ring-closure true`. Por defecto están en `0` / `false`, que es la selección del Sprint 2. Más detalles en [docs/formatos.md](docs/formatos.md).
+
+### Reconstruir una sesión (Sprint 3)
+
+`scanner_reconstruct` toma una sesión **ya procesada por `scanner_match`** y hace la reconstrucción incremental:
+1. elige el par inicial y recupera su pose (E y `recoverPose`);
+2. triangula con DLT;
+3. registra las demás cámaras con PnP-RANSAC;
+4. refina con bundle adjustment en Ceres (poses, puntos, `f`, `k1` y `k2`);
+5. filtra los puntos vistos en menos de 3 cámaras o con error alto.
+
+Al final reporta el error de reproyección por cámara.
+
+```powershell
+cd server
+.\build\Release\scanner_match.exe --session ..\sessions\20261121-142259-tenis
+.\build\Release\scanner_reconstruct.exe --session ..\sessions\20261121-142259-tenis --debug
+```
+
+| Opción | Descripción |
+|---|---|
+| `--session carpeta` | Sesión a procesar (obligatoria; debe tener `matching_report.json`). |
+| `--config archivo.json` | Sobrescribe la sección `reconstruction` de `config.default.json`. |
+| `--include-rejected` | Incluye como candidatas las fotos rechazadas por calidad. Por defecto se excluyen. |
+| `--debug` | Guarda una vista superior y otra lateral de la nube con las cámaras. |
+| `--<parámetro> valor` | Sobrescribe un parámetro, p. ej. `--max-reproj-error-px 3`, `--pnp-min-inliers 10`, `--refine-distortion false`. |
+
+Imprime una tabla por cámara (error medio y RMS antes y después del BA final) y un resumen con los tiempos. Deja en `sessions\<id>\reconstruction\`:
+- `reconstruction.json`;
+- `reconstruction_report.json`;
+- `sparse_cloud.ply`, que se abre con MeshLab o CloudCompare; los vértices magenta son las cámaras.
 
 ## App Android
 

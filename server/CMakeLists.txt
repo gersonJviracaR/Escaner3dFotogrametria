@@ -19,10 +19,13 @@ find_package(nlohmann_json CONFIG REQUIRED)
 # Núcleo reutilizable por los Sprints 2-4.
 add_library(scanner_core STATIC
   src/atomic_file.cpp
+  src/bundle_adjustment.cpp
+  src/camera_model.cpp
   src/config.cpp
   src/epipolar.cpp
   src/features.cpp
   src/http_server.cpp
+  src/initialization.cpp
   src/intrinsics.cpp
   src/manifest.cpp
   src/matching.cpp
@@ -30,14 +33,25 @@ add_library(scanner_core STATIC
   src/matching_report.cpp
   src/pairing.cpp
   src/quality.cpp
+  src/reconstruction.cpp
+  src/reconstruction_io.cpp
+  src/reconstruction_params.cpp
+  src/reconstruction_report.cpp
+  src/registration.cpp
   src/session_matching.cpp
+  src/session_reconstruction.cpp
   src/session_store.cpp
+  src/sfm_types.cpp
+  src/tracks.cpp
+  src/triangulation.cpp
+  src/visibility.cpp
 )
 target_include_directories(scanner_core PUBLIC src)
 target_link_libraries(scanner_core PUBLIC
   opencv_core opencv_imgproc opencv_imgcodecs opencv_features2d opencv_calib3d
   httplib::httplib
   nlohmann_json::nlohmann_json
+  Ceres::ceres
 )
 
 add_executable(scanner_server src/main.cpp)
@@ -50,20 +64,37 @@ add_custom_command(TARGET scanner_server POST_BUILD
 add_executable(scanner_match tools/scanner_match.cpp)
 target_link_libraries(scanner_match PRIVATE scanner_core)
 
+# Sprint 3: reconstrucción dispersa y bundle adjustment de una sesión ya emparejada.
+add_executable(scanner_reconstruct tools/scanner_reconstruct.cpp)
+target_link_libraries(scanner_reconstruct PRIVATE scanner_core)
+add_custom_command(TARGET scanner_reconstruct POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:scanner_reconstruct>/config.default.json)
+
 enable_testing()
 add_executable(scanner_tests
+  tests/test_bundle_adjustment.cpp
+  tests/test_camera_model.cpp
   tests/test_config.cpp
   tests/test_epipolar.cpp
   tests/test_features.cpp
   tests/test_http_integration.cpp
+  tests/test_initialization.cpp
   tests/test_intrinsics.cpp
   tests/test_manifest.cpp
   tests/test_matching.cpp
   tests/test_matching_report.cpp
   tests/test_pairing.cpp
   tests/test_quality.cpp
+  tests/test_reconstruction_io.cpp
+  tests/test_reconstruction_report.cpp
+  tests/test_registration.cpp
   tests/test_session_matching.cpp
+  tests/test_session_reconstruction.cpp
   tests/test_session_store.cpp
+  tests/test_tracks.cpp
+  tests/test_triangulation.cpp
+  tests/test_visibility.cpp
 )
 target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
 target_compile_definitions(scanner_tests PRIVATE

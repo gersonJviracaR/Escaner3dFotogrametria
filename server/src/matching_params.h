@@ -17,6 +17,12 @@ struct MatchingParams {
   double ratio = 0.75;           // ratio test de Lowe
   double max_angle_deg = 45.0;   // diferencia angular máxima entre vistas vecinas
   int max_neighbors = 6;         // vecinas por foto
+  // Ampliación autorizada en el Sprint 3: además de los pares por orientación, cada vista
+  // se empareja con las neighbor_index_window siguientes (por posición) y, con
+  // ring_closure, las últimas con las primeras. Por defecto 0 / false (selección del
+  // Sprint 2): en la sesión tenis la ventana 3 no agregó ningún par (ver sprint3-reporte.md).
+  int neighbor_index_window = 0;
+  bool ring_closure = false;
   // HU-11 / HU-12: geometría epipolar
   double ransac_threshold_px = 1.0;  // umbral de Sampson (px de la imagen original)
   double ransac_confidence = 0.999;

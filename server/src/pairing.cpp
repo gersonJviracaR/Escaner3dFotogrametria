@@ -45,3 +45,36 @@ std::vector<ViewPair> selectNeighborPairs(const std::vector<ViewOrientation>& vi
   for (const auto& [key, angle] : unique) pairs.push_back({key.first, key.second, angle});
   return pairs;
 }
+
+std::vector<ViewPair> selectIndexWindowPairs(const std::vector<ViewOrientation>& views, int window,
+                                             bool ring_closure) {
+  std::vector<ViewOrientation> sorted = views;
+  std::sort(sorted.begin(), sorted.end(),
+            [](const ViewOrientation& a, const ViewOrientation& b) { return a.index < b.index; });
+  const int n = static_cast<int>(sorted.size());
+  std::map<std::pair<int, int>, double> unique;
+  for (int a = 0; a < n; ++a)
+    for (int d = 1; d <= window; ++d) {
+      int b = a + d;
+      if (b >= n) {
+        if (!ring_closure) break;
+        b -= n;  // cierre del anillo: las últimas vistas con las primeras
+      }
+      if (b == a || b < 0 || b >= n) continue;  // ventana mayor que el número de vistas
+      const ViewOrientation& x = sorted[static_cast<std::size_t>(a)];
+      const ViewOrientation& y = sorted[static_cast<std::size_t>(b)];
+      unique[{std::min(x.index, y.index), std::max(x.index, y.index)}] = quaternionAngleDeg(x.q, y.q);
+    }
+  std::vector<ViewPair> pairs;
+  for (const auto& [key, angle] : unique) pairs.push_back({key.first, key.second, angle});
+  return pairs;
+}
+
+std::vector<ViewPair> unionPairs(const std::vector<ViewPair>& a, const std::vector<ViewPair>& b) {
+  std::map<std::pair<int, int>, double> unique;
+  for (const std::vector<ViewPair>* list : {&a, &b})
+    for (const ViewPair& p : *list) unique.emplace(std::make_pair(p.i, p.j), p.angle_deg);
+  std::vector<ViewPair> pairs;
+  for (const auto& [key, angle] : unique) pairs.push_back({key.first, key.second, angle});
+  return pairs;
+}

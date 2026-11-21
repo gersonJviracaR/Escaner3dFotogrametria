@@ -28,7 +28,8 @@ int positiveInt(const json& j, const char* key) {
 const std::set<std::string> kKnownKeys = {
     "work_long_side",      "max_features",      "clahe",       "clahe_clip_limit", "clahe_tile",
     "ratio",               "max_angle_deg",     "max_neighbors", "ransac_threshold_px",
-    "ransac_confidence",   "min_inliers",       "min_inlier_ratio", "fallback_focal_factor"};
+    "ransac_confidence",   "min_inliers",       "min_inlier_ratio", "fallback_focal_factor",
+    "neighbor_index_window", "ring_closure"};
 
 std::string keyFromOption(const std::string& option) {
   if (option.rfind("--", 0) != 0) return {};
@@ -57,6 +58,16 @@ MatchingParams applyMatchingJson(MatchingParams p, const json& j) {
   if (j.contains("ratio")) p.ratio = numberIn(j, "ratio", 0, 1, true, false);
   if (j.contains("max_angle_deg")) p.max_angle_deg = numberIn(j, "max_angle_deg", 0, 180, true, false);
   if (j.contains("max_neighbors")) p.max_neighbors = positiveInt(j, "max_neighbors");
+  if (j.contains("neighbor_index_window")) {
+    const json& v = j.at("neighbor_index_window");
+    if (!v.is_number_integer() || v.get<long long>() < 0 || v.get<long long>() > 10)
+      throw std::invalid_argument("matching.neighbor_index_window debe ser un entero entre 0 y 10");
+    p.neighbor_index_window = v.get<int>();
+  }
+  if (j.contains("ring_closure")) {
+    if (!j.at("ring_closure").is_boolean()) throw std::invalid_argument("matching.ring_closure debe ser true o false");
+    p.ring_closure = j.at("ring_closure").get<bool>();
+  }
   if (j.contains("ransac_threshold_px"))
     p.ransac_threshold_px = numberIn(j, "ransac_threshold_px", 0, kInf, true, false);
   if (j.contains("ransac_confidence")) p.ransac_confidence = numberIn(j, "ransac_confidence", 0, 1, true, true);
@@ -76,6 +87,8 @@ json toJson(const MatchingParams& p) {
               {"ratio", p.ratio},
               {"max_angle_deg", p.max_angle_deg},
               {"max_neighbors", p.max_neighbors},
+              {"neighbor_index_window", p.neighbor_index_window},
+              {"ring_closure", p.ring_closure},
               {"ransac_threshold_px", p.ransac_threshold_px},
               {"ransac_confidence", p.ransac_confidence},
               {"min_inliers", p.min_inliers},

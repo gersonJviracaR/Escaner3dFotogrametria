@@ -15,10 +15,28 @@
     "ratio": 0.75,
     "max_angle_deg": 45.0,
     "max_neighbors": 6,
+    "neighbor_index_window": 0,
+    "ring_closure": false,
     "ransac_threshold_px": 1.0,
     "ransac_confidence": 0.999,
     "min_inliers": 30,
     "min_inlier_ratio": 0.25,
     "fallback_focal_factor": 1.2
+  },
+  "reconstruction": {
+    "exclude_rejected_photos": true,
+    "init_min_inliers": 100,
+    "init_min_median_triangulation_angle_deg": 5.0,
+    "tri_min_angle_deg": 1.5,
+    "max_reproj_error_px": 2.0,
+    "pnp_ransac_threshold_px": 3.0,
+    "pnp_confidence": 0.999,
+    "pnp_min_inliers": 20,
+    "min_views": 3,
+    "ba_every": 1,
+    "ba_max_iterations": 100,
+    "huber_delta_px": 1.0,
+    "refine_focal": true,
+    "refine_distortion": true
   }
 }
