@@ -23,5 +23,5 @@ Rama: `sprint-2/epic-2-geometria-epipolar`. Estados: Pendiente / En curso / Hech
 | Sección `matching` en `config.default.json` y en la lectura de configuración (con pruebas) | Hecha |
 | Escritura segura reutilizable (`atomic_file`) | Hecha |
 | Herramienta `scanner_match`, `matching_report.json` e inliers por par aceptado | Hecha |
-| Prueba con la sesión de referencia `20261120-212147-llama` | Pendiente |
-| `docs/formatos.md`, `README.md`, `docs/sprint2-reporte.md` | Pendiente |
+| Prueba con la sesión de referencia `20261120-212147-llama` (5 de 44 pares aceptados; causas en el reporte) | Hecha |
+| `docs/formatos.md`, `README.md`, `docs/sprint2-reporte.md` | Hecha |
