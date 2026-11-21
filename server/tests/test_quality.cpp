@@ -118,6 +118,13 @@ TEST(Quality, TextureOnlyOutsideCenterIsBlurry) {
   EXPECT_EQ(r.reasons, std::vector<std::string>{"borrosa"});
 }
 
+// Límites de la calibración con la sesión 20261120-212147-llama (Poco X3 Pro, 4000x3000):
+// la peor foto buena midió 104.6 y la mejor foto movida 84.2 en el 50 % central.
+TEST(Quality, CalibratedThresholdSeparatesMeasuredExtremes) {
+  EXPECT_LT(kDefaults.sharpness_min, 104.6);
+  EXPECT_GT(kDefaults.sharpness_min, 84.2);
+}
+
 TEST(Quality, ThresholdsAreConfigurable) {
   QualityThresholds strict;
   strict.sharpness_min = 1e9;

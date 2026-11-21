@@ -13,7 +13,7 @@ TEST(Config, DefaultsMatchSprintSpec) {
   const ServerConfig c;
   EXPECT_EQ(c.port, 8080);
   EXPECT_EQ(c.max_photo_bytes, 64u * 1024u * 1024u);
-  EXPECT_DOUBLE_EQ(c.quality.sharpness_min, 90.0);  // provisional, calibrado con fotos reales
+  EXPECT_DOUBLE_EQ(c.quality.sharpness_min, 94.0);  // calibrado con fotos reales (docs/sprint1-reporte.md)
   EXPECT_DOUBLE_EQ(c.quality.overexposed_max, 0.15);
 }
 

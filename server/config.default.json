@@ -3,7 +3,7 @@
   "data_dir": "sessions",
   "max_photo_mb": 64,
   "quality": {
-    "sharpness_min": 90.0,
+    "sharpness_min": 94.0,
     "overexposed_max": 0.15
   }
 }

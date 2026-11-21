@@ -8,8 +8,9 @@
 
 struct QualityThresholds {
   // Varianza mínima del Laplaciano en el 50 % central (lado mayor = 1000 px).
-  // Provisional: calibrado con la sesión 20261120-204353 (ver docs/sprint1-reporte.md).
-  double sharpness_min = 90.0;
+  // Calibrado con fotos reales del Poco X3 Pro (ver docs/sprint1-reporte.md):
+  // punto medio geométrico entre la peor foto buena (104.6) y la mejor movida (84.2).
+  double sharpness_min = 94.0;
   double overexposed_max = 0.15;  // fracción máxima de píxeles con gris >= 250
 };
 

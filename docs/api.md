@@ -61,7 +61,7 @@ En este sprint no se calcula la matriz K: solo se guardan los datos crudos (Epic
 
 `reasons` puede contener `"borrosa"` y/o `"saturada"`.
 
-- **Nitidez (`sharpness`)**: la imagen se pasa a gris y se redimensiona para que su lado mayor mida 1000 px. Luego se calcula la varianza del Laplaciano **solo en el 50 % central** (la mitad del ancho y la mitad del alto, centradas): el objeto suele estar al centro, y un fondo liso o desenfocado no debe hacer pasar por borrosa una foto nítida. Es `"borrosa"` si es menor que `quality.sharpness_min` (90, **provisional**; ver `docs/sprint1-reporte.md`).
+- **Nitidez (`sharpness`)**: la imagen se pasa a gris y se redimensiona para que su lado mayor mida 1000 px. Luego se calcula la varianza del Laplaciano **solo en el 50 % central** (la mitad del ancho y la mitad del alto, centradas): el objeto suele estar al centro, y un fondo liso o desenfocado no debe hacer pasar por borrosa una foto nítida. Es `"borrosa"` si es menor que `quality.sharpness_min` (94, calibrado con fotos reales; ver `docs/sprint1-reporte.md`).
 - **Saturación (`overexposed_ratio`)**: fracción de píxeles con gris ≥ 250 (medida sobre la misma imagen redimensionada). Es `"saturada"` si es mayor que `quality.overexposed_max`.
 - Se mide la cuadrícula de píxeles tal como se guardó: se ignora la etiqueta de orientación EXIF.
 
@@ -107,7 +107,7 @@ Las fotos están ordenadas por `index`, y `summary.rejected` lista los índices 
   "port": 8080,
   "data_dir": "sessions",
   "max_photo_mb": 64,
-  "quality": { "sharpness_min": 90.0, "overexposed_max": 0.15 }
+  "quality": { "sharpness_min": 94.0, "overexposed_max": 0.15 }
 }
 ```
 
