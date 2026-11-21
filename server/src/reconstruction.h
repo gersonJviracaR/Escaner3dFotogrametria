@@ -4,6 +4,7 @@
 #include "bundle_adjustment.h"
 #include "initialization.h"
 #include "reconstruction_params.h"
+#include "reconstruction_report.h"
 #include "visibility.h"
 #include "sfm_types.h"
 
@@ -24,6 +25,8 @@ struct SfmResult {
   std::vector<BundleReport> ba_runs;  // en orden de ejecución
   FilterStats filter_first;           // filtrado tras el BA final (HU-17)
   FilterStats filter_final;           // filtrado tras el segundo BA
+  CameraErrors errors_before;         // HU-18: antes del BA final (tras la fase incremental)
+  CameraErrors errors_after;          // HU-18: después del segundo BA y del filtrado final
 };
 
 // Flujo de la sección 3.2: par inicial, triangulación, registro incremental con PnP.

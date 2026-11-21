@@ -119,12 +119,14 @@ SfmResult runIncrementalSfm(const SfmInput& input, const ReconstructionParams& p
   }
 
   // 4. Bundle adjustment final (HU-16), filtrado (HU-17), segundo BA y filtrado final.
+  res.errors_before = computeCameraErrors(rec);
   runBundle(res, params, "final", log);
   res.filter_first = filterPoints(rec, params.min_views, params.max_reproj_error_px);
   say(log, "filtrado: " + std::to_string(res.filter_first.points_before) + " -> " +
                std::to_string(res.filter_first.points_after) + " puntos");
   runBundle(res, params, "final_2", log);
   res.filter_final = filterPoints(rec, params.min_views, params.max_reproj_error_px);
+  res.errors_after = computeCameraErrors(rec);
   say(log, "filtrado final: " + std::to_string(res.filter_final.points_before) + " -> " +
                std::to_string(res.filter_final.points_after) + " puntos");
 

@@ -11,7 +11,7 @@ Rama: `sprint-3/epic-3-reconstruccion-dispersa`. Estados: Pendiente / En curso /
 | HU-15 | Como operador quiero registrar las demás cámaras con PnP-RANSAC y triangular nuevos puntos. | 5 | Alta | Hecha con pruebas verdes |
 | HU-16 | Como operador quiero refinar poses y puntos con bundle adjustment en Ceres. | 5 | Alta | Hecha con pruebas verdes |
 | HU-17 | Como operador quiero descartar puntos visibles en menos de 3 cámaras o con error de reproyección alto. | 3 | Alta | Hecha con pruebas verdes |
-| HU-18 | Como operador quiero ver el error de reproyección de cada cámara. | 1 | Media | Pendiente |
+| HU-18 | Como operador quiero ver el error de reproyección de cada cámara. | 1 | Media | Hecha con pruebas verdes |
 
 **Total:** 20 puntos.
 
