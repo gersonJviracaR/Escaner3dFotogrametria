@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <map>
 #include <numeric>
+#include <tuple>
 #include <utility>
 
 namespace {
@@ -34,10 +35,13 @@ class UnionFind {
 
 std::vector<Track> buildTracks(const std::vector<PairMatches>& pairs, TrackStats* stats) {
   UnionFind uf;
-  std::map<std::pair<int, int>, int> node_of;  // (foto, punto) -> nodo
+  // Nodo = (foto, posición exacta). SIFT repite un mismo punto con varias orientaciones
+  // (mismas coordenadas, otro índice); si cada par usara una copia distinta, las pistas
+  // de 3 o más vistas se cortarían. La observación conserva el primer índice visto.
+  std::map<std::tuple<int, float, float>, int> node_of;
   std::vector<Observation> nodes;
   auto nodeFor = [&](int image, int point, const cv::Point2f& xy) {
-    const auto [it, inserted] = node_of.try_emplace({image, point}, 0);
+    const auto [it, inserted] = node_of.try_emplace({image, xy.x, xy.y}, 0);
     if (inserted) {
       it->second = uf.add();
       nodes.push_back({image, point, cv::Point2d(xy.x, xy.y)});

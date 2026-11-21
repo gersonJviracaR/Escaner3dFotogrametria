@@ -150,6 +150,27 @@ TEST(BundleAdjustment, FocalIsConstantWhenNotRefined) {
   EXPECT_EQ(rec.camera.k2, 0.0);
 }
 
+// Como en la sesión real: la K inicial (EXIF) tiene la focal desviada ~8 % y no modela la
+// distorsión del lente. Las pistas que fallan con esa K al triangular el par inicial
+// deben recuperarse (retriangulación) tras el primer BA.
+TEST(BundleAdjustment, PipelineRecoversFromApproximateInitialIntrinsics) {
+  scene::RingOptions o;
+  o.k1 = 0.10;  // del orden de lo estimado para el Poco X3 Pro
+  o.k2 = -0.25;
+  scene::SfmScene s = scene::makeRingScene(o);
+  s.input.camera.f = s.camera.f * 0.92;
+  const SfmResult r = runIncrementalSfm(s.input, ReconstructionParams{});
+  EXPECT_EQ(r.rec.registeredCount(), 12);
+  EXPECT_NEAR(r.rec.camera.f / s.camera.f, 1.0, 0.02);
+  EXPECT_LT(r.errors_after.global.rms, 0.6);
+  // El primer BA (solo el par inicial) refina f y recupera pistas que la K inicial rechazó.
+  ASSERT_FALSE(r.ba_runs.empty());
+  EXPECT_EQ(r.ba_runs.front().stage, "incremental");
+  EXPECT_GT(r.ba_runs.front().retriangulated, 0);
+  for (const BundleReport& b : r.ba_runs)
+    if (b.stage != "incremental") EXPECT_EQ(b.retriangulated, 0) << b.stage;  // no se repone lo filtrado
+}
+
 TEST(BundleAdjustment, IncrementalPipelineRunsBundleAdjustment) {
   const scene::SfmScene s = scene::makeRingScene();
   const SfmResult r = runIncrementalSfm(s.input, ReconstructionParams{});  // ba_every = 1

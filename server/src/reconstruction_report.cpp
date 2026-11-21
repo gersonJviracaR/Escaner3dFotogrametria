@@ -51,6 +51,7 @@ json bundleJson(const BundleReport& b) {
               {"cameras", b.n_cameras},
               {"points", b.n_points},
               {"observations", b.n_observations},
+              {"retriangulated", b.retriangulated},
               {"termination", b.termination},
               {"time_ms", b.time_ms}};
 }

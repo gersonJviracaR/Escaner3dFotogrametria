@@ -84,7 +84,7 @@ TEST(ReconstructionReport, JsonHasCompleteStructure) {
   r.cameras = {c, CameraSummary{9, false, "componente_desconectado", {}, {}}};
   r.global_before = c.before;
   r.global_after = c.after;
-  r.ba_runs = {BundleReport{"final", "DENSE_SCHUR", 12, 100, 10, 0.9, 0.4, 2, 50, 300, "CONVERGENCE", 120}};
+  r.ba_runs = {BundleReport{"final", "DENSE_SCHUR", 12, 100, 10, 0.9, 0.4, 2, 50, 300, 0, "CONVERGENCE", 120}};
   r.timing_ms = {{"total", 1000}};
   const nlohmann::json j = toJson(r);
 

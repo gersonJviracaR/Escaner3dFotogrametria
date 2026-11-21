@@ -57,6 +57,21 @@ TEST(Tracks, TrackWithTwoPointsInSamePhotoIsDiscarded) {
   EXPECT_EQ(stats.discarded_inconsistent, 1);
 }
 
+TEST(Tracks, DuplicateKeypointsAtSamePositionAreJoined) {
+  // SIFT repite un punto con varias orientaciones: mismo píxel, otro índice. Si el par 1-2
+  // usa la copia 20 y el par 2-3 la copia 21 del mismo punto de la foto 2, es una sola pista.
+  InlierCorrespondence a = corr(10, 20);
+  InlierCorrespondence b = corr(21, 30);
+  b.point_i = a.point_j;  // mismo píxel en la foto 2
+  TrackStats stats;
+  const std::vector<Track> tracks = buildTracks({pair(1, 2, {a}), pair(2, 3, {b})}, &stats);
+  ASSERT_EQ(tracks.size(), 1u);
+  ASSERT_EQ(tracks[0].observations.size(), 3u);
+  EXPECT_EQ(tracks[0].observations[1].image, 2);
+  EXPECT_EQ(tracks[0].observations[1].point, 20);  // se conserva el primer índice visto
+  EXPECT_EQ(stats.discarded_inconsistent, 0);
+}
+
 TEST(Tracks, EachObservationBelongsToOneTrack) {
   std::vector<InlierCorrespondence> a, b;
   for (int k = 0; k < 40; ++k) {

@@ -29,6 +29,8 @@ struct RingOptions {
   std::uint64_t seed = 99;
   bool weak_camera = false;       // foto 13: solo 6 correspondencias con la foto 1
   bool separate_component = false;  // fotos 20 y 21: solo emparejadas entre sí
+  double k1 = 0;                    // distorsión verdadera de la cámara
+  double k2 = 0;
 };
 
 inline void addPair(SfmScene& s, std::vector<PairMatches>& matches, int i, int j) {
@@ -64,7 +66,11 @@ inline void addPair(SfmScene& s, std::vector<PairMatches>& matches, int i, int j
 inline SfmScene makeRingScene(const RingOptions& o = {}) {
   SfmScene s;
   s.camera = camera();
+  s.camera.k1 = o.k1;
+  s.camera.k2 = o.k2;
   s.input.camera = s.camera;
+  s.input.camera.k1 = 0;  // la reconstrucción empieza sin distorsión, como con la K del EXIF
+  s.input.camera.k2 = 0;
   const std::vector<Pose> ring_poses = ring(o.n_cameras, 6.0, o.step_deg);
   for (int k = 0; k < o.n_cameras; ++k) s.poses[k + 1] = ring_poses[static_cast<std::size_t>(k)];
   s.points = randomPoints(o.n_points, o.seed, 1.5);

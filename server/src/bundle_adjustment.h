@@ -32,6 +32,7 @@ struct BundleReport {
   int n_cameras = 0;
   int n_points = 0;
   int n_observations = 0;
+  int retriangulated = 0;   // pistas trianguladas de nuevo después de este BA (fase incremental)
   std::string termination;  // CONVERGENCE, NO_CONVERGENCE, ...
   double time_ms = 0;
 };

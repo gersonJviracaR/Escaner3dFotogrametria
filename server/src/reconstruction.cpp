@@ -47,9 +47,14 @@ void runBundle(SfmResult& res, const ReconstructionParams& params, const std::st
                const std::function<void(const std::string&)>& log) {
   BundleReport r = bundleAdjust(res.rec, bundleOptions(params, res.init));
   r.stage = stage;
-  char text[200];
-  std::snprintf(text, sizeof(text), "BA %s: RMS %.3f -> %.3f px, %d iteraciones, %.0f ms", stage.c_str(),
-                r.rms_before_px, r.rms_after_px, r.iterations, r.time_ms);
+  // Retriangulación (solo en la fase incremental): las pistas que fallaron con las poses
+  // e intrínsecos anteriores (p. ej. por la K aproximada del par inicial) se reintentan
+  // con los refinados. En las etapas finales no, para no reponer lo que filtra HU-17.
+  const int retriangulated = stage == "incremental" ? triangulateTracks(res.rec, params) : 0;
+  r.retriangulated = retriangulated;
+  char text[220];
+  std::snprintf(text, sizeof(text), "BA %s: RMS %.3f -> %.3f px, %d iteraciones, %.0f ms; +%d puntos retriangulados",
+                stage.c_str(), r.rms_before_px, r.rms_after_px, r.iterations, r.time_ms, retriangulated);
   say(log, text);
   res.ba_runs.push_back(r);
 }
@@ -110,7 +115,18 @@ SfmResult runIncrementalSfm(const SfmInput& input, const ReconstructionParams& p
       if (f != failed_at.end() && n <= f->second) continue;  // solo se reintenta si ganó correspondencias
       if (n > best_n) best = img, best_n = n;
     }
-    if (best < 0 || best_n < params.pnp_min_inliers) break;
+    if (best < 0 || best_n < params.pnp_min_inliers) {
+      // Fin del registro: se deja constancia de las correspondencias 2D-3D que quedaban.
+      std::string left;
+      for (const auto& [img, cam] : rec.cameras)
+        if (!cam.registered && component.count(img)) {
+          const int n = static_cast<int>(correspondences2D3D(rec, img).points.size());
+          if (n > 0) left += " " + std::to_string(img) + ":" + std::to_string(n);
+        }
+      say(log, "fin del registro; correspondencias 2D-3D de las cámaras restantes (mínimo " +
+                   std::to_string(params.pnp_min_inliers) + "):" + (left.empty() ? " ninguna" : left));
+      break;
+    }
 
     const RegistrationResult reg = registerCamera(rec, best, params);
     if (!reg.ok) {

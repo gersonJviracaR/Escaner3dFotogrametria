@@ -31,6 +31,7 @@ struct TrackStats {
   int discarded_inconsistent = 0; // pistas con dos puntos distintos en la misma foto
 };
 
-// Unión-búsqueda sobre (foto, índice de punto). Las pistas inconsistentes se descartan
+// Unión-búsqueda sobre (foto, posición del punto): las copias de un mismo punto SIFT con
+// distinta orientación (mismas coordenadas, otro índice) se unen. Las pistas inconsistentes se descartan
 // enteras. Cada observación pertenece como mucho a una pista.
 std::vector<Track> buildTracks(const std::vector<PairMatches>& pairs, TrackStats* stats = nullptr);
