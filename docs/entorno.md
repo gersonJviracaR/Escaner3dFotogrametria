@@ -54,6 +54,29 @@ C:\tools\colmap\COLMAP.bat -h
 COLMAP 4.2.1 (Commit bd1fcf6 on 2026-09-29 with CUDA, boost hash maps)
 ```
 
-## flutter doctor
+## Android SDK y flutter doctor
 
-Pendiente: falta que Android Studio descargue el SDK de Android (primer arranque) y aceptar las licencias con `flutter doctor --android-licenses`.
+- **SDK de Android** en `%LOCALAPPDATA%\Android\Sdk`, descargado por el asistente de Android Studio al abrirlo por primera vez: platform-tools, build-tools 36.0.0 y plataforma android-37. Al compilar, Gradle agregó las plataformas 35 y 36, el NDK 28.2.13676358 y CMake 3.22.1.
+- **cmdline-tools** no venía con el asistente. Se instaló a mano: `commandlinetools-win-15859902_latest.zip` de https://developer.android.com/studio (SHA-256 `90ae805d…801fb04a`, verificado), en `Sdk\cmdline-tools\latest`. También se definió `ANDROID_HOME` de usuario.
+- Las licencias las aceptó el usuario con `flutter doctor --android-licenses`.
+- La primera compilación de la APK de release tardó 851 s; las siguientes, unos 40 s.
+
+```
+[✓] Flutter (Channel stable, 3.50.1, on Microsoft Windows [Version 10.0.26200.9457], locale en-US)
+[✓] Windows Version (Windows 11 or higher, 25H2, 2009)
+[✓] Android toolchain - develop for Android devices (Android SDK version 36.0.0)
+[✗] Chrome - develop for the web (Cannot find Chrome executable ...)
+[✓] Visual Studio - develop Windows apps (Visual Studio Build Tools 2022 17.14.45)
+[✓] Connected device (2 available)
+[✓] Network resources
+```
+
+La falta de Chrome no afecta al proyecto, porque la app es solo para Android.
+
+## Celular de pruebas
+
+Xiaomi Poco X3 Pro (M2102J20SG, `vayu`), Android 12 (SDK 31). En MIUI hay que activar **Instalar vía USB** en las opciones de desarrollador; sin eso, `adb install` falla con `INSTALL_FAILED_USER_RESTRICTED`.
+
+## Red y cortafuegos
+
+El perfil de la Wi-Fi estaba en **Público** y el usuario lo cambió a **Privado**. La regla `Escaner3D Servidor` (entrada TCP 8080, perfil Privado) se creó con `scripts\open-firewall.ps1` como administrador. La conexión se comprobó desde el celular (192.168.0.235) hacia la PC (192.168.0.128:8080) con `nc` por `adb shell`: `GET /health` respondió 200.

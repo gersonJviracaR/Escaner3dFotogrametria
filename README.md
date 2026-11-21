@@ -16,7 +16,7 @@ Celular Android (Flutter)  ──HTTP/Wi-Fi local──▶  Servidor local en la
 
 | Sprint | Epic | Estado |
 |---|---|---|
-| 1 | Captura móvil y recepción en servidor local | En cierre (ver [docs/sprint1-backlog.md](docs/sprint1-backlog.md)) |
+| 1 | Captura móvil y recepción en servidor local | **Completo** (ver [docs/sprint1-reporte.md](docs/sprint1-reporte.md)) |
 | 2 | Características y geometría epipolar | Pendiente |
 | 3 | Reconstrucción dispersa y bundle adjustment | Pendiente |
 | 4 | Malla texturizada y exportación | Pendiente |
