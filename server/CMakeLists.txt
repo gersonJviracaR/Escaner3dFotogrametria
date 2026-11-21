@@ -19,6 +19,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 # Núcleo reutilizable por los Sprints 2-4.
 add_library(scanner_core STATIC
   src/atomic_file.cpp
+  src/bundle_adjustment.cpp
   src/camera_model.cpp
   src/config.cpp
   src/epipolar.cpp
@@ -61,6 +62,7 @@ target_link_libraries(scanner_match PRIVATE scanner_core)
 
 enable_testing()
 add_executable(scanner_tests
+  tests/test_bundle_adjustment.cpp
   tests/test_camera_model.cpp
   tests/test_config.cpp
   tests/test_epipolar.cpp

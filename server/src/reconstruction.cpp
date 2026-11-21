@@ -2,6 +2,7 @@
 
 #include "registration.h"
 
+#include <cstdio>
 #include <map>
 #include <queue>
 #include <set>
@@ -29,6 +30,28 @@ std::set<int> componentOf(int start, const std::vector<PairCandidate>& pairs) {
       if (seen.insert(m).second) q.push(m);
   }
   return seen;
+}
+
+BundleOptions bundleOptions(const ReconstructionParams& params, const InitialPair& init) {
+  BundleOptions o;
+  o.max_iterations = params.ba_max_iterations;
+  o.huber_delta_px = params.huber_delta_px;
+  o.refine_focal = params.refine_focal;
+  o.refine_distortion = params.refine_distortion;
+  o.fixed_camera = init.i;  // calibre: la primera cámara del par inicial queda fija
+  o.scale_camera = init.j;  // y la segunda fija la escala (|t| = 1 al empezar)
+  return o;
+}
+
+void runBundle(SfmResult& res, const ReconstructionParams& params, const std::string& stage,
+               const std::function<void(const std::string&)>& log) {
+  BundleReport r = bundleAdjust(res.rec, bundleOptions(params, res.init));
+  r.stage = stage;
+  char text[200];
+  std::snprintf(text, sizeof(text), "BA %s: RMS %.3f -> %.3f px, %d iteraciones, %.0f ms", stage.c_str(),
+                r.rms_before_px, r.rms_after_px, r.iterations, r.time_ms);
+  say(log, text);
+  res.ba_runs.push_back(r);
 }
 
 }  // namespace
@@ -61,10 +84,12 @@ SfmResult runIncrementalSfm(const SfmInput& input, const ReconstructionParams& p
   const int initial_points = triangulateTracks(rec, params);
   say(log, "par inicial " + std::to_string(res.init.i) + "-" + std::to_string(res.init.j) + ": " +
                std::to_string(initial_points) + " puntos");
+  runBundle(res, params, "incremental", log);
 
   // 3. Registro incremental (HU-15).
   const std::set<int> component = componentOf(res.init.i, input.pairs);
   std::map<int, int> failed_at;  // foto -> correspondencias cuando falló PnP
+  int since_bundle = 0;
   while (true) {
     int best = -1, best_n = 0;
     for (const auto& [img, cam] : rec.cameras) {
@@ -87,7 +112,14 @@ SfmResult runIncrementalSfm(const SfmInput& input, const ReconstructionParams& p
     const int added = triangulateTracks(rec, params, best);
     say(log, "foto " + std::to_string(best) + ": registrada, " + std::to_string(reg.n_inliers) + "/" +
                  std::to_string(reg.n_correspondences) + " inliers PnP, +" + std::to_string(added) + " puntos");
+    if (++since_bundle >= params.ba_every) {
+      runBundle(res, params, "incremental", log);
+      since_bundle = 0;
+    }
   }
+
+  // 4. Bundle adjustment final (HU-16).
+  runBundle(res, params, "final", log);
 
   for (auto& [img, cam] : rec.cameras) {
     if (cam.registered) continue;

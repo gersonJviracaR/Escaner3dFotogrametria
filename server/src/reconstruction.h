@@ -1,6 +1,7 @@
 // Orquestación de la reconstrucción dispersa incremental (Epic 3).
 #pragma once
 
+#include "bundle_adjustment.h"
 #include "initialization.h"
 #include "reconstruction_params.h"
 #include "sfm_types.h"
@@ -19,6 +20,7 @@ struct SfmInput {
 struct SfmResult {
   Reconstruction rec;
   InitialPair init;
+  std::vector<BundleReport> ba_runs;  // en orden de ejecución
 };
 
 // Flujo de la sección 3.2: par inicial, triangulación, registro incremental con PnP.
