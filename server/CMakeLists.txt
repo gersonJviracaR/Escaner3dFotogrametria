@@ -24,6 +24,7 @@ add_library(scanner_core STATIC
   src/epipolar.cpp
   src/features.cpp
   src/http_server.cpp
+  src/initialization.cpp
   src/intrinsics.cpp
   src/manifest.cpp
   src/matching.cpp
@@ -61,6 +62,7 @@ add_executable(scanner_tests
   tests/test_epipolar.cpp
   tests/test_features.cpp
   tests/test_http_integration.cpp
+  tests/test_initialization.cpp
   tests/test_intrinsics.cpp
   tests/test_manifest.cpp
   tests/test_matching.cpp
