@@ -35,6 +35,7 @@ add_library(scanner_core STATIC
   src/reconstruction_params.cpp
   src/session_matching.cpp
   src/session_store.cpp
+  src/tracks.cpp
   src/triangulation.cpp
 )
 target_include_directories(scanner_core PUBLIC src)
@@ -71,6 +72,7 @@ add_executable(scanner_tests
   tests/test_quality.cpp
   tests/test_session_matching.cpp
   tests/test_session_store.cpp
+  tests/test_tracks.cpp
   tests/test_triangulation.cpp
 )
 target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
