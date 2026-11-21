@@ -80,6 +80,14 @@ cv::Mat prepareWorkImage(const cv::Mat& image, const MatchingParams& params, dou
     cv::resize(gray, reduced, work, 0, 0, cv::INTER_AREA);
     gray = reduced;
   }
+  if (params.clahe) {
+    // HU-08: ecualización adaptativa por bloques, sobre la imagen ya reducida.
+    cv::Ptr<cv::CLAHE> clahe =
+        cv::createCLAHE(params.clahe_clip_limit, cv::Size(params.clahe_tile, params.clahe_tile));
+    cv::Mat equalized;
+    clahe->apply(gray, equalized);
+    gray = equalized;
+  }
   return gray;
 }
 

@@ -9,6 +9,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <limits>
 
 namespace fs = std::filesystem;
@@ -141,6 +142,95 @@ TEST(Features, FileRoundTrip) {
   }
   ASSERT_EQ(g.descriptors.type(), CV_32F);
   EXPECT_EQ(cv::norm(g.descriptors, f.descriptors, cv::NORM_INF), 0.0);
+}
+
+// ---------- HU-08 ----------
+
+namespace {
+
+// Copia con brillo y contraste alterados: contraste al 30 % y luz no uniforme
+// (gradiente horizontal de +100 a +180 niveles).
+cv::Mat alterBrightnessContrast(const cv::Mat& gray) {
+  cv::Mat out(gray.size(), CV_8UC1);
+  for (int y = 0; y < gray.rows; ++y)
+    for (int x = 0; x < gray.cols; ++x)
+      out.at<uchar>(y, x) =
+          cv::saturate_cast<uchar>(0.3 * gray.at<uchar>(y, x) + 100.0 + 80.0 * x / gray.cols);
+  return out;
+}
+
+struct TwoViews {
+  cv::Mat a, b;
+  cv::Matx23d transform;  // p_b = transform * [p_a; 1]
+};
+
+TwoViews twoViews() {
+  TwoViews v;
+  v.a = testimg::blobTexture(800, 600, 31);
+  const cv::Mat m = cv::getRotationMatrix2D(cv::Point2f(400, 300), 12.0, 0.9);
+  v.transform = cv::Matx23d(m);
+  cv::warpAffine(v.a, v.b, m, v.a.size(), cv::INTER_LINEAR, cv::BORDER_REFLECT);
+  return v;
+}
+
+// Correspondencias con ratio test (0,75) que respetan la transformación conocida.
+// Se empareja aquí directamente con OpenCV para no depender de HU-09.
+int correctMatches(const ImageFeatures& a, const ImageFeatures& b, const cv::Matx23d& t) {
+  cv::BFMatcher matcher(cv::NORM_L2);
+  std::vector<std::vector<cv::DMatch>> knn;
+  matcher.knnMatch(a.descriptors, b.descriptors, knn, 2);
+  int correct = 0;
+  for (const auto& m : knn) {
+    if (m.size() < 2 || m[0].distance >= 0.75f * m[1].distance) continue;
+    const cv::Point2f pa = a.keypoints[m[0].queryIdx].pt;
+    const cv::Point2f pb = b.keypoints[m[0].trainIdx].pt;
+    const cv::Vec2d expected = t * cv::Vec3d(pa.x, pa.y, 1.0);
+    if (std::hypot(expected[0] - pb.x, expected[1] - pb.y) <= 3.0) ++correct;
+  }
+  return correct;
+}
+
+}  // namespace
+
+TEST(ContrastNormalization, KeepsAtLeast80PercentOfMatchesUnderBrightnessContrastChange) {
+  const TwoViews v = twoViews();
+  MatchingParams p;
+  p.clahe = true;
+  const ImageFeatures fb = extractFeatures(v.b, p);
+  const int baseline = correctMatches(extractFeatures(v.a, p), fb, v.transform);
+  const int altered = correctMatches(extractFeatures(alterBrightnessContrast(v.a), p), fb, v.transform);
+  ASSERT_GT(baseline, 200);
+  EXPECT_GE(altered, 0.8 * baseline) << "alterada: " << altered << ", sin alterar: " << baseline;
+  std::cout << "[ info ] HU-08 con CLAHE: " << altered << " de " << baseline << " correspondencias ("
+            << 100.0 * altered / baseline << " %)\n";
+}
+
+TEST(ContrastNormalization, PipelineStillWorksWithoutClahe) {
+  const TwoViews v = twoViews();
+  MatchingParams p;
+  p.clahe = false;
+  EXPECT_GT(correctMatches(extractFeatures(v.a, p), extractFeatures(v.b, p), v.transform), 200);
+}
+
+TEST(ContrastNormalization, ClaheRestoresLocalContrast) {
+  const cv::Mat altered = alterBrightnessContrast(testimg::blobTexture(800, 600, 31));
+  MatchingParams p;
+  double scale = 0;
+  p.clahe = false;
+  const cv::Mat plain = prepareWorkImage(altered, p, scale);
+  EXPECT_EQ(cv::norm(plain, altered, cv::NORM_INF), 0.0);  // sin CLAHE no se toca
+  p.clahe = true;
+  const cv::Mat equalized = prepareWorkImage(altered, p, scale);
+  // Contraste local = desviación de la componente de alta frecuencia (sin el gradiente de luz).
+  auto localContrast = [](const cv::Mat& img) {
+    cv::Mat f, low;
+    img.convertTo(f, CV_32F);
+    cv::GaussianBlur(f, low, cv::Size(0, 0), 8.0);
+    cv::Scalar mean, stddev;
+    cv::meanStdDev(f - low, mean, stddev);
+    return stddev[0];
+  };
+  EXPECT_GT(localContrast(equalized), 1.5 * localContrast(altered));
 }
 
 TEST(Features, ReadingInvalidFileThrows) {

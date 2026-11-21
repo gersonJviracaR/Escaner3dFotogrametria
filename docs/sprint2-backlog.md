@@ -7,7 +7,7 @@ Rama: `sprint-2/epic-2-geometria-epipolar`. Estados: Pendiente / En curso / Hech
 | ID | Historia | Pts | Prioridad | Estado |
 |---|---|---|---|---|
 | HU-07 | Como operador quiero extraer características SIFT de cada foto. | 3 | Alta | Hecha con pruebas verdes |
-| HU-08 | Como operador quiero normalizar el contraste antes de extraer características para tolerar iluminación variable. | 2 | Media | Pendiente |
+| HU-08 | Como operador quiero normalizar el contraste antes de extraer características para tolerar iluminación variable. | 2 | Media | Hecha con pruebas verdes |
 | HU-09 | Como operador quiero emparejar descriptores entre pares de fotos con ratio test. | 5 | Alta | Pendiente |
 | HU-10 | Como operador quiero emparejar solo vistas vecinas (según la orientación registrada) para reducir el cómputo. | 2 | Media | Pendiente |
 | HU-11 | Como operador quiero estimar F con RANSAC y obtener E con K para validar la geometría de cada par. | 5 | Alta | Pendiente |
