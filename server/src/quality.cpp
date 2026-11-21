@@ -25,6 +25,12 @@ cv::Mat toNormalizedGray(const cv::Mat& image) {
   return resized;
 }
 
+cv::Mat centralRegion(const cv::Mat& image, double fraction) {
+  const int w = std::max(1, static_cast<int>(image.cols * fraction));
+  const int h = std::max(1, static_cast<int>(image.rows * fraction));
+  return image(cv::Rect((image.cols - w) / 2, (image.rows - h) / 2, w, h));
+}
+
 }  // namespace
 
 QualityResult evaluateQuality(const cv::Mat& image, const QualityThresholds& thresholds) {
@@ -32,8 +38,9 @@ QualityResult evaluateQuality(const cv::Mat& image, const QualityThresholds& thr
 
   const cv::Mat gray = toNormalizedGray(image);
 
+  // Nitidez solo en la región central; la saturación sigue midiéndose en toda la imagen.
   cv::Mat laplacian;
-  cv::Laplacian(gray, laplacian, CV_64F);
+  cv::Laplacian(centralRegion(gray, kSharpnessCenterFraction), laplacian, CV_64F);
   cv::Scalar mean, stddev;
   cv::meanStdDev(laplacian, mean, stddev);
 

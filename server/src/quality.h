@@ -7,7 +7,9 @@
 #include <vector>
 
 struct QualityThresholds {
-  double sharpness_min = 100.0;   // varianza mínima del Laplaciano (lado mayor = 1000 px)
+  // Varianza mínima del Laplaciano en el 50 % central (lado mayor = 1000 px).
+  // Provisional: calibrado con la sesión 20261120-204353 (ver docs/sprint1-reporte.md).
+  double sharpness_min = 90.0;
   double overexposed_max = 0.15;  // fracción máxima de píxeles con gris >= 250
 };
 
@@ -20,6 +22,9 @@ struct QualityResult {
 
 // Lado mayor al que se normaliza la imagen antes de medir.
 constexpr int kQualityLongSide = 1000;
+// Fracción del ancho y del alto (centrada) donde se mide la nitidez: el objeto suele
+// estar al centro y un fondo liso o desenfocado no debe hacer pasar la foto por borrosa.
+constexpr double kSharpnessCenterFraction = 0.5;
 // Nivel de gris a partir del cual un píxel cuenta como saturado.
 constexpr int kOverexposedLevel = 250;
 

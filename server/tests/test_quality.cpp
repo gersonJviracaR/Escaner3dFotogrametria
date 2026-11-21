@@ -90,6 +90,34 @@ TEST(Quality, VerdictDoesNotDependOnResolution) {
   EXPECT_EQ(bs.accepted, bl.accepted);
 }
 
+// Calibración con fotos reales (sesión 20261120-204353): el fondo liso y desenfocado
+// bajaba la nitidez de toda la imagen aunque el objeto central estuviera nítido.
+TEST(Quality, SharpCenteredObjectOnPlainBackgroundIsAccepted) {
+  cv::Mat img(750, 1000, CV_8UC1, cv::Scalar(120));
+  cv::Mat center = img(cv::Rect(250, 187, 500, 375));
+  cv::RNG rng(7);
+  rng.fill(center, cv::RNG::UNIFORM, 114, 127);  // textura fina de bajo contraste
+
+  const QualityResult r = evaluateQuality(img, kDefaults);
+  EXPECT_TRUE(r.accepted) << "nitidez = " << r.sharpness;
+  EXPECT_GT(r.sharpness, kDefaults.sharpness_min);
+
+  // La misma textura medida en toda la imagen quedaría bajo el umbral.
+  cv::Mat lap;
+  cv::Laplacian(img, lap, CV_64F);
+  cv::Scalar mean, stddev;
+  cv::meanStdDev(lap, mean, stddev);
+  EXPECT_LT(stddev[0] * stddev[0], kDefaults.sharpness_min);
+}
+
+TEST(Quality, TextureOnlyOutsideCenterIsBlurry) {
+  cv::Mat img(750, 1000, CV_8UC1, cv::Scalar(120));
+  makeNoise(1000, 150).copyTo(img(cv::Rect(0, 0, 1000, 150)));  // franja superior, fuera del centro
+  const QualityResult r = evaluateQuality(img, kDefaults);
+  EXPECT_FALSE(r.accepted);
+  EXPECT_EQ(r.reasons, std::vector<std::string>{"borrosa"});
+}
+
 TEST(Quality, ThresholdsAreConfigurable) {
   QualityThresholds strict;
   strict.sharpness_min = 1e9;
