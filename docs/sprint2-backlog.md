@@ -11,7 +11,7 @@ Rama: `sprint-2/epic-2-geometria-epipolar`. Estados: Pendiente / En curso / Hech
 | HU-09 | Como operador quiero emparejar descriptores entre pares de fotos con ratio test. | 5 | Alta | Hecha con pruebas verdes |
 | HU-10 | Como operador quiero emparejar solo vistas vecinas (según la orientación registrada) para reducir el cómputo. | 2 | Media | Hecha con pruebas verdes |
 | HU-11 | Como operador quiero estimar F con RANSAC y obtener E con K para validar la geometría de cada par. | 5 | Alta | Hecha con pruebas verdes |
-| HU-12 | Como operador quiero rechazar pares con desviación epipolar mayor al umbral para descartar falsos emparejamientos. | 3 | Alta | En curso (validación hecha; falta el reporte de la sesión) |
+| HU-12 | Como operador quiero rechazar pares con desviación epipolar mayor al umbral para descartar falsos emparejamientos. | 3 | Alta | Hecha con pruebas verdes |
 
 **Total:** 20 puntos.
 
@@ -22,6 +22,6 @@ Rama: `sprint-2/epic-2-geometria-epipolar`. Estados: Pendiente / En curso / Hech
 | OpenCV de vcpkg con `calib3d` (`findFundamentalMat`); `features2d` ya incluía SIFT | Hecha |
 | Sección `matching` en `config.default.json` y en la lectura de configuración (con pruebas) | Hecha |
 | Escritura segura reutilizable (`atomic_file`) | Hecha |
-| Herramienta `scanner_match` y `matching_report.json` | Pendiente |
+| Herramienta `scanner_match`, `matching_report.json` e inliers por par aceptado | Hecha |
 | Prueba con la sesión de referencia `20261120-212147-llama` | Pendiente |
 | `docs/formatos.md`, `README.md`, `docs/sprint2-reporte.md` | Pendiente |

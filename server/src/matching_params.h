@@ -4,6 +4,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <string>
+
 struct MatchingParams {
   // HU-07 / HU-08: extracción
   int work_long_side = 2000;     // lado mayor de la imagen de trabajo (px)
@@ -27,3 +29,8 @@ struct MatchingParams {
 // un mensaje en español si hay claves desconocidas o valores fuera de rango.
 MatchingParams applyMatchingJson(MatchingParams base, const nlohmann::json& j);
 nlohmann::json toJson(const MatchingParams& p);
+
+// Opciones de línea de comandos de scanner_match: "--max-angle-deg 30" equivale a
+// {"max_angle_deg": 30}. Los valores "true"/"false" son booleanos; el resto, números.
+bool isMatchingOverride(const std::string& option);
+MatchingParams applyMatchingOverride(MatchingParams base, const std::string& option, const std::string& value);

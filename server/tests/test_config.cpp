@@ -86,6 +86,20 @@ TEST(MatchingConfig, DefaultConfigFileMatchesCodeDefaults) {
   EXPECT_EQ(toJson(c.matching), toJson(MatchingParams{}));
 }
 
+TEST(MatchingConfig, CommandLineOverrides) {
+  MatchingParams p = applyMatchingOverride(MatchingParams{}, "--max-angle-deg", "30");
+  p = applyMatchingOverride(p, "--clahe", "false");
+  p = applyMatchingOverride(p, "--min-inliers", "50");
+  EXPECT_DOUBLE_EQ(p.max_angle_deg, 30.0);
+  EXPECT_FALSE(p.clahe);
+  EXPECT_EQ(p.min_inliers, 50);
+  EXPECT_THROW(applyMatchingOverride(p, "--ratio", "abc"), std::invalid_argument);
+  EXPECT_THROW(applyMatchingOverride(p, "--no-existe", "1"), std::invalid_argument);
+  EXPECT_THROW(applyMatchingOverride(p, "--ratio", "2"), std::invalid_argument);
+  EXPECT_TRUE(isMatchingOverride("--work-long-side"));
+  EXPECT_FALSE(isMatchingOverride("--session"));
+}
+
 TEST(Config, CommandLineErrors) {
   EXPECT_THROW(applyCommandLine(ServerConfig{}, {"--port"}), ConfigError);
   EXPECT_THROW(applyCommandLine(ServerConfig{}, {"--port", "abc"}), ConfigError);

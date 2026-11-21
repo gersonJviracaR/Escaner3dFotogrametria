@@ -25,16 +25,25 @@ int positiveInt(const json& j, const char* key) {
   return v.get<int>();
 }
 
+const std::set<std::string> kKnownKeys = {
+    "work_long_side",      "max_features",      "clahe",       "clahe_clip_limit", "clahe_tile",
+    "ratio",               "max_angle_deg",     "max_neighbors", "ransac_threshold_px",
+    "ransac_confidence",   "min_inliers",       "min_inlier_ratio", "fallback_focal_factor"};
+
+std::string keyFromOption(const std::string& option) {
+  if (option.rfind("--", 0) != 0) return {};
+  std::string key = option.substr(2);
+  for (char& ch : key)
+    if (ch == '-') ch = '_';
+  return kKnownKeys.count(key) ? key : std::string();
+}
+
 }  // namespace
 
 MatchingParams applyMatchingJson(MatchingParams p, const json& j) {
   if (!j.is_object()) throw std::invalid_argument("la sección matching debe ser un objeto JSON");
-  static const std::set<std::string> known = {
-      "work_long_side", "max_features",        "clahe",       "clahe_clip_limit",  "clahe_tile",
-      "ratio",          "max_angle_deg",       "max_neighbors", "ransac_threshold_px",
-      "ransac_confidence", "min_inliers",      "min_inlier_ratio", "fallback_focal_factor"};
   for (const auto& item : j.items())
-    if (!known.count(item.key())) throw std::invalid_argument("clave desconocida en matching: " + item.key());
+    if (!kKnownKeys.count(item.key())) throw std::invalid_argument("clave desconocida en matching: " + item.key());
 
   constexpr double kInf = 1e300;
   if (j.contains("work_long_side")) p.work_long_side = positiveInt(j, "work_long_side");
@@ -72,4 +81,19 @@ json toJson(const MatchingParams& p) {
               {"min_inliers", p.min_inliers},
               {"min_inlier_ratio", p.min_inlier_ratio},
               {"fallback_focal_factor", p.fallback_focal_factor}};
+}
+
+bool isMatchingOverride(const std::string& option) { return !keyFromOption(option).empty(); }
+
+MatchingParams applyMatchingOverride(MatchingParams base, const std::string& option, const std::string& value) {
+  const std::string key = keyFromOption(option);
+  if (key.empty()) throw std::invalid_argument("opción desconocida: " + option);
+  json v;
+  if (value == "true" || value == "false") {
+    v = (value == "true");
+  } else {
+    v = json::parse(value, nullptr, /*allow_exceptions=*/false);
+    if (!v.is_number()) throw std::invalid_argument("valor inválido para " + option + ": " + value);
+  }
+  return applyMatchingJson(base, json{{key, v}});
 }

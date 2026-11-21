@@ -27,8 +27,10 @@ add_library(scanner_core STATIC
   src/manifest.cpp
   src/matching.cpp
   src/matching_params.cpp
+  src/matching_report.cpp
   src/pairing.cpp
   src/quality.cpp
+  src/session_matching.cpp
   src/session_store.cpp
 )
 target_include_directories(scanner_core PUBLIC src)
@@ -44,6 +46,10 @@ add_custom_command(TARGET scanner_server POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:scanner_server>/config.default.json)
 
+# Sprint 2: procesa una sesión ya almacenada (características, pares, F/E).
+add_executable(scanner_match tools/scanner_match.cpp)
+target_link_libraries(scanner_match PRIVATE scanner_core)
+
 enable_testing()
 add_executable(scanner_tests
   tests/test_config.cpp
@@ -53,8 +59,10 @@ add_executable(scanner_tests
   tests/test_intrinsics.cpp
   tests/test_manifest.cpp
   tests/test_matching.cpp
+  tests/test_matching_report.cpp
   tests/test_pairing.cpp
   tests/test_quality.cpp
+  tests/test_session_matching.cpp
   tests/test_session_store.cpp
 )
 target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
