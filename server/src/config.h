@@ -2,6 +2,7 @@
 #pragma once
 
 #include "matching_params.h"
+#include "reconstruction_params.h"
 #include "quality.h"
 
 #include <nlohmann/json.hpp>
@@ -22,7 +23,8 @@ struct ServerConfig {
   std::string data_dir = "sessions";
   std::size_t max_photo_bytes = 64u * 1024u * 1024u;
   QualityThresholds quality;
-  MatchingParams matching;  // la usa scanner_match (Sprint 2), no el servidor HTTP
+  MatchingParams matching;              // la usa scanner_match (Sprint 2), no el servidor HTTP
+  ReconstructionParams reconstruction;  // la usa scanner_reconstruct (Sprint 3)
 };
 
 // Aplica sobre `base` solo los campos presentes en el JSON.

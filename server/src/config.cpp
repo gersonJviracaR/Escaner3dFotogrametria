@@ -36,6 +36,8 @@ ServerConfig applyConfigJson(ServerConfig c, const json& j) {
       if (q.contains("overexposed_max")) c.quality.overexposed_max = q.at("overexposed_max").get<double>();
     }
     if (j.contains("matching")) c.matching = applyMatchingJson(c.matching, j.at("matching"));
+    if (j.contains("reconstruction"))
+      c.reconstruction = applyReconstructionJson(c.reconstruction, j.at("reconstruction"));
   } catch (const json::exception& e) {
     throw ConfigError(std::string("configuración inválida: ") + e.what());
   } catch (const std::invalid_argument& e) {

@@ -30,6 +30,7 @@ add_library(scanner_core STATIC
   src/matching_report.cpp
   src/pairing.cpp
   src/quality.cpp
+  src/reconstruction_params.cpp
   src/session_matching.cpp
   src/session_store.cpp
 )
