@@ -27,3 +27,13 @@ struct ViewPair {
 // Devuelve la unión de esos pares sin repetidos, ordenada por (i, j).
 std::vector<ViewPair> selectNeighborPairs(const std::vector<ViewOrientation>& views, double max_angle_deg,
                                           int max_neighbors);
+
+// Ventana de vecinos por posición (ampliación del Sprint 3): con las vistas ordenadas
+// por índice, cada una se empareja con las `window` siguientes; con ring_closure la
+// cuenta da la vuelta (las últimas vistas con las primeras). La posición es la de la
+// lista recibida, así que las fotos excluidas no dejan huecos. window = 0: sin pares.
+std::vector<ViewPair> selectIndexWindowPairs(const std::vector<ViewOrientation>& views, int window,
+                                             bool ring_closure);
+
+// Unión de dos listas de pares, sin repetidos y ordenada por (i, j).
+std::vector<ViewPair> unionPairs(const std::vector<ViewPair>& a, const std::vector<ViewPair>& b);

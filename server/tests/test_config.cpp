@@ -60,6 +60,24 @@ TEST(MatchingConfig, DefaultsMatchSprint2Spec) {
   EXPECT_DOUBLE_EQ(p.fallback_focal_factor, 1.2);
 }
 
+TEST(MatchingConfig, NeighborIndexWindowDefaultsAndSprint2Mode) {
+  // Por defecto, la selección del Sprint 2 (solo por orientación): en la sesión tenis la
+  // ventana 3 con cierre no agregó pares y se revirtió (criterio de salida del Sprint 3).
+  const MatchingParams p;
+  EXPECT_EQ(p.neighbor_index_window, 0);
+  EXPECT_FALSE(p.ring_closure);
+  const ServerConfig c = applyConfigJson(
+      ServerConfig{}, json::parse(R"({"matching":{"neighbor_index_window":3,"ring_closure":true}})"));
+  EXPECT_EQ(c.matching.neighbor_index_window, 3);
+  EXPECT_TRUE(c.matching.ring_closure);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"neighbor_index_window":-1}})")),
+               ConfigError);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"neighbor_index_window":11}})")),
+               ConfigError);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"ring_closure":1}})")), ConfigError);
+  EXPECT_EQ(applyMatchingOverride(MatchingParams{}, "--neighbor-index-window", "0").neighbor_index_window, 0);
+}
+
 TEST(MatchingConfig, PartialOverrideKeepsOtherValues) {
   const ServerConfig c =
       applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"ratio":0.8,"clahe":false}})"));
