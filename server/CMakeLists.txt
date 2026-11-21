@@ -34,6 +34,7 @@ add_library(scanner_core STATIC
   src/pairing.cpp
   src/quality.cpp
   src/reconstruction.cpp
+  src/reconstruction_io.cpp
   src/reconstruction_params.cpp
   src/reconstruction_report.cpp
   src/registration.cpp
@@ -77,6 +78,7 @@ add_executable(scanner_tests
   tests/test_matching_report.cpp
   tests/test_pairing.cpp
   tests/test_quality.cpp
+  tests/test_reconstruction_io.cpp
   tests/test_reconstruction_report.cpp
   tests/test_registration.cpp
   tests/test_session_matching.cpp

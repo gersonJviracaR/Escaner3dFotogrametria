@@ -54,6 +54,17 @@ void runBundle(SfmResult& res, const ReconstructionParams& params, const std::st
   res.ba_runs.push_back(r);
 }
 
+// Escala monocular: se fija la distancia entre los centros del par inicial en 1 (el BA
+// solo fija una componente de la traslación, así que se renormaliza al final).
+void normalizeScale(Reconstruction& rec, int i, int j) {
+  const double d = cv::norm(rec.cameras.at(j).pose.center() - rec.cameras.at(i).pose.center());
+  if (!(d > 0)) return;
+  const double s = 1.0 / d;
+  for (auto& [img, cam] : rec.cameras)
+    if (cam.registered) cam.pose.t *= s;
+  for (Point3D& p : rec.points) p.xyz *= s;
+}
+
 }  // namespace
 
 SfmResult runIncrementalSfm(const SfmInput& input, const ReconstructionParams& params,
@@ -126,6 +137,7 @@ SfmResult runIncrementalSfm(const SfmInput& input, const ReconstructionParams& p
                std::to_string(res.filter_first.points_after) + " puntos");
   runBundle(res, params, "final_2", log);
   res.filter_final = filterPoints(rec, params.min_views, params.max_reproj_error_px);
+  normalizeScale(rec, res.init.i, res.init.j);
   res.errors_after = computeCameraErrors(rec);
   say(log, "filtrado final: " + std::to_string(res.filter_final.points_before) + " -> " +
                std::to_string(res.filter_final.points_after) + " puntos");
