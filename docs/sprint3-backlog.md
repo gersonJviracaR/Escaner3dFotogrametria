@@ -23,5 +23,7 @@ Rama: `sprint-3/epic-3-reconstruccion-dispersa`. Estados: Pendiente / En curso /
 | Sección `reconstruction` en `config.default.json` y en la lectura de configuración (con pruebas) | Hecha |
 | Modelo de cámara (HU-14), pistas (*tracks*) | Hecha |
 | Herramienta `scanner_reconstruct`, `reconstruction.json`, `reconstruction_report.json`, `sparse_cloud.ply` | Hecha |
-| Prueba con la sesión `20261121-142259-tenis` | Pendiente |
-| `docs/formatos.md`, `README.md`, `docs/sprint3-reporte.md` | Pendiente |
+| Prueba con la sesión `20261121-142259-tenis`: 11 de 34 cámaras; diagnóstico con COLMAP (31 de 34) | Hecha |
+| Ventana de vecinos por índice en `scanner_match` (autorizada; sin efecto en `tenis`, desactivada por defecto) | Hecha |
+| Densificar el emparejamiento para registrar el anillo completo | Pasa al Sprint 4 |
+| `docs/formatos.md`, `README.md`, `docs/sprint3-reporte.md` | Hecha |
