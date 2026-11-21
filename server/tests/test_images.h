@@ -4,6 +4,8 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include <algorithm>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -17,6 +19,17 @@ inline cv::Mat checkerboard(int width, int height) {
       const uchar v = ((x / square + y / square) % 2) ? 200 : 40;
       img.at<cv::Vec3b>(y, x) = cv::Vec3b(v, v, v);
     }
+  return img;
+}
+
+// Textura aleatoria de manchas (ruido de baja resolución ampliado y suavizado), en gris.
+inline cv::Mat blobTexture(int width, int height, int seed, int cell = 8) {
+  cv::Mat small(std::max(2, height / cell), std::max(2, width / cell), CV_8UC1);
+  cv::RNG rng(static_cast<uint64_t>(seed));
+  rng.fill(small, cv::RNG::UNIFORM, 0, 256);
+  cv::Mat img;
+  cv::resize(small, img, cv::Size(width, height), 0, 0, cv::INTER_CUBIC);
+  cv::GaussianBlur(img, img, cv::Size(0, 0), 1.2);
   return img;
 }
 

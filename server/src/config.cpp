@@ -35,7 +35,10 @@ ServerConfig applyConfigJson(ServerConfig c, const json& j) {
       if (q.contains("sharpness_min")) c.quality.sharpness_min = q.at("sharpness_min").get<double>();
       if (q.contains("overexposed_max")) c.quality.overexposed_max = q.at("overexposed_max").get<double>();
     }
+    if (j.contains("matching")) c.matching = applyMatchingJson(c.matching, j.at("matching"));
   } catch (const json::exception& e) {
+    throw ConfigError(std::string("configuración inválida: ") + e.what());
+  } catch (const std::invalid_argument& e) {
     throw ConfigError(std::string("configuración inválida: ") + e.what());
   }
   return c;

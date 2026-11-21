@@ -17,17 +17,19 @@ Celular Android (Flutter)  ──HTTP/Wi-Fi local──▶  Servidor local en la
 | Sprint | Epic | Estado |
 |---|---|---|
 | 1 | Captura móvil y recepción en servidor local | **Completo** (ver [docs/sprint1-reporte.md](docs/sprint1-reporte.md)) |
-| 2 | Características y geometría epipolar | Pendiente |
+| 2 | Características y geometría epipolar | **Completo** (ver [docs/sprint2-reporte.md](docs/sprint2-reporte.md)) |
 | 3 | Reconstrucción dispersa y bundle adjustment | Pendiente |
 | 4 | Malla texturizada y exportación | Pendiente |
 
 ## Estructura
 
 ```
-server/    servidor C++17 (CMake + vcpkg): HTTP, sesiones, manifiesto y control de calidad
+server/    servidor C++17 (CMake + vcpkg): HTTP, sesiones, manifiesto, control de calidad;
+           tools/scanner_match.cpp (SIFT, pares vecinos, F y E por sesión)
 mobile/    app Flutter para Android (captura guiada y envío)
 scripts/   check-env.ps1, open-firewall.ps1, smoke-test.ps1 (PowerShell)
-docs/      entorno.md, api.md, sprint1-backlog.md, sprint1-reporte.md
+docs/      entorno.md, api.md, formatos.md, sprint1-backlog.md, sprint1-reporte.md,
+           sprint2-backlog.md, sprint2-reporte.md
 ```
 
 ## Requisitos (Windows 11)
@@ -87,6 +89,29 @@ Con el servidor corriendo:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\smoke-test.ps1
 ```
+
+### Emparejar una sesión (Sprint 2)
+
+`scanner_match` procesa una sesión **ya almacenada**. Para cada foto aceptada extrae puntos SIFT (con CLAHE) y elige los pares vecinos según la orientación registrada. Para cada par, empareja con ratio test, estima F con RANSAC y E = K'ᵀ F K, y descarta los pares inválidos.
+
+```powershell
+cd server
+.\build\Release\scanner_match.exe --session ..\sessions\20261120-212147-llama --debug
+```
+
+| Opción | Descripción |
+|---|---|
+| `--session carpeta` | Sesión a procesar (obligatoria). |
+| `--config archivo.json` | Sobrescribe la sección `matching` de `config.default.json`. |
+| `--debug` | Guarda en `debug\` una imagen con las correspondencias de un par aceptado y de uno rechazado. |
+| `--<parámetro> valor` | Sobrescribe un parámetro, p. ej. `--max-angle-deg 30`, `--ransac-threshold-px 2`, `--clahe false`. |
+
+Imprime una tabla por par y un resumen con los tiempos. En la sesión deja:
+- `features\img_###.feat`;
+- `matches\pair_###_###.csv` (solo para los pares aceptados);
+- `matching_report.json`.
+
+Los formatos están en [docs/formatos.md](docs/formatos.md).
 
 ## App Android
 

@@ -10,7 +10,7 @@ if(MSVC)
   add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
 endif()
 
-find_package(OpenCV CONFIG REQUIRED COMPONENTS core imgproc imgcodecs)
+find_package(OpenCV CONFIG REQUIRED COMPONENTS core imgproc imgcodecs features2d calib3d)
 find_package(Ceres CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(httplib CONFIG REQUIRED)
@@ -18,15 +18,24 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 # Núcleo reutilizable por los Sprints 2-4.
 add_library(scanner_core STATIC
+  src/atomic_file.cpp
   src/config.cpp
+  src/epipolar.cpp
+  src/features.cpp
   src/http_server.cpp
+  src/intrinsics.cpp
   src/manifest.cpp
+  src/matching.cpp
+  src/matching_params.cpp
+  src/matching_report.cpp
+  src/pairing.cpp
   src/quality.cpp
+  src/session_matching.cpp
   src/session_store.cpp
 )
 target_include_directories(scanner_core PUBLIC src)
 target_link_libraries(scanner_core PUBLIC
-  opencv_core opencv_imgproc opencv_imgcodecs
+  opencv_core opencv_imgproc opencv_imgcodecs opencv_features2d opencv_calib3d
   httplib::httplib
   nlohmann_json::nlohmann_json
 )
@@ -37,15 +46,28 @@ add_custom_command(TARGET scanner_server POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:scanner_server>/config.default.json)
 
+# Sprint 2: procesa una sesión ya almacenada (características, pares, F/E).
+add_executable(scanner_match tools/scanner_match.cpp)
+target_link_libraries(scanner_match PRIVATE scanner_core)
+
 enable_testing()
 add_executable(scanner_tests
   tests/test_config.cpp
+  tests/test_epipolar.cpp
+  tests/test_features.cpp
   tests/test_http_integration.cpp
+  tests/test_intrinsics.cpp
   tests/test_manifest.cpp
+  tests/test_matching.cpp
+  tests/test_matching_report.cpp
+  tests/test_pairing.cpp
   tests/test_quality.cpp
+  tests/test_session_matching.cpp
   tests/test_session_store.cpp
 )
 target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
+target_compile_definitions(scanner_tests PRIVATE
+  ESCANER3D_DEFAULT_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/config.default.json")
 include(GoogleTest)
 gtest_discover_tests(scanner_tests DISCOVERY_MODE PRE_TEST)
 
