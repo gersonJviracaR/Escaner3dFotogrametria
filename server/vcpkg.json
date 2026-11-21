@@ -1,8 +1,8 @@
-{
+﻿{
   "name": "escaner3d-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "dependencies": [
-    { "name": "opencv4", "default-features": false, "features": ["jpeg", "png"] },
+    { "name": "opencv4", "default-features": false, "features": ["calib3d", "jpeg", "png"] },
     "ceres",
     "eigen3",
     "gtest",

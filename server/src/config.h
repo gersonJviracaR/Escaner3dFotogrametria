@@ -1,6 +1,7 @@
 // Configuración del servidor: puerto, carpeta de datos y umbrales de calidad.
 #pragma once
 
+#include "matching_params.h"
 #include "quality.h"
 
 #include <nlohmann/json.hpp>
@@ -21,6 +22,7 @@ struct ServerConfig {
   std::string data_dir = "sessions";
   std::size_t max_photo_bytes = 64u * 1024u * 1024u;
   QualityThresholds quality;
+  MatchingParams matching;  // la usa scanner_match (Sprint 2), no el servidor HTTP
 };
 
 // Aplica sobre `base` solo los campos presentes en el JSON.

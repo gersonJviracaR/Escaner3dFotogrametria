@@ -1,5 +1,7 @@
 #include "manifest.h"
 
+#include "atomic_file.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -139,16 +141,7 @@ Manifest manifestFromJson(const json& j) {
 }
 
 void writeManifestAtomic(const std::filesystem::path& file, const Manifest& m) {
-  std::filesystem::path tmp = file;
-  tmp += ".tmp";
-  {
-    std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
-    if (!out) throw std::runtime_error("no se pudo escribir " + tmp.string());
-    out << toJson(m).dump(2) << '\n';
-    if (!out) throw std::runtime_error("error al escribir " + tmp.string());
-  }
-  // rename reemplaza el destino si existe (MoveFileEx con REPLACE_EXISTING en MSVC).
-  std::filesystem::rename(tmp, file);
+  writeFileAtomic(file, toJson(m).dump(2) + '\n');
 }
 
 Manifest readManifest(const std::filesystem::path& file) {
