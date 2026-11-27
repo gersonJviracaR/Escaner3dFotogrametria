@@ -32,6 +32,7 @@ add_library(scanner_core STATIC
   src/intrinsics.cpp
   src/manifest.cpp
   src/matching.cpp
+  src/meshing.cpp
   src/matching_params.cpp
   src/matching_report.cpp
   src/pairing.cpp
@@ -43,6 +44,7 @@ add_library(scanner_core STATIC
   src/reconstruction_report.cpp
   src/registration.cpp
   src/session_matching.cpp
+  src/session_pipeline.cpp
   src/session_reconstruction.cpp
   src/session_store.cpp
   src/sfm_types.cpp
@@ -75,6 +77,15 @@ add_custom_command(TARGET scanner_reconstruct POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
           ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:scanner_reconstruct>/config.default.json)
 
+# Sprint 4: herramientas del Epic 4 (copian config.default.json junto al ejecutable).
+foreach(tool scanner_dense)
+  add_executable(${tool} tools/${tool}.cpp)
+  target_link_libraries(${tool} PRIVATE scanner_core)
+  add_custom_command(TARGET ${tool} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:${tool}>/config.default.json)
+endforeach()
+
 enable_testing()
 add_executable(scanner_tests
   tests/test_bundle_adjustment.cpp
@@ -88,6 +99,7 @@ add_executable(scanner_tests
   tests/test_intrinsics.cpp
   tests/test_manifest.cpp
   tests/test_matching.cpp
+  tests/test_meshing.cpp
   tests/test_matching_report.cpp
   tests/test_pairing.cpp
   tests/test_quality.cpp
@@ -95,6 +107,7 @@ add_executable(scanner_tests
   tests/test_reconstruction_report.cpp
   tests/test_registration.cpp
   tests/test_session_matching.cpp
+  tests/test_session_pipeline.cpp
   tests/test_session_reconstruction.cpp
   tests/test_session_store.cpp
   tests/test_tracks.cpp
