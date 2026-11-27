@@ -46,7 +46,7 @@ struct AccuracyReport {
   bool reliable = false;  // common >= min_common_cameras
   std::string note;
   double scale = 0;  // factor de la similitud (propio -> COLMAP)
-  double ring_radius = 0;  // distancia media de los centros comunes de COLMAP a su centroide
+  double ring_radius = 0;  // distancia media de todos los centros de COLMAP a su centroide
   double position_mean = 0, position_rms = 0, position_max = 0;
   double rotation_mean_deg = 0, rotation_max_deg = 0;
   int alignment_inliers = 0;

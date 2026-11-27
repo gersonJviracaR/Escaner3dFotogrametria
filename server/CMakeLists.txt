@@ -81,7 +81,7 @@ add_custom_command(TARGET scanner_reconstruct POST_BUILD
           ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:scanner_reconstruct>/config.default.json)
 
 # Sprint 4: herramientas del Epic 4 (copian config.default.json junto al ejecutable).
-foreach(tool scanner_dense)
+foreach(tool scanner_dense scanner_texture scanner_accuracy)
   add_executable(${tool} tools/${tool}.cpp)
   target_link_libraries(${tool} PRIVATE scanner_core)
   add_custom_command(TARGET ${tool} POST_BUILD

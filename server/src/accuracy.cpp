@@ -113,15 +113,22 @@ AccuracyReport compareReconstructions(const Reconstruction& ours, const Reconstr
     from.push_back(ours.cameras.at(index).pose.center());
     to.push_back(colmap.cameras.at(index).pose.center());
   }
+  // Radio del anillo: con TODAS las cámaras de COLMAP (las comunes pueden ser solo un arco,
+  // cuyo centroide no es el centro del anillo).
+  std::vector<cv::Vec3d> all_colmap;
+  for (const auto& [index, cam] : colmap.cameras)
+    if (cam.registered) all_colmap.push_back(cam.pose.center());
+  cv::Vec3d ring_center(0, 0, 0);
+  for (const cv::Vec3d& x : all_colmap) ring_center += x;
+  ring_center *= 1.0 / static_cast<double>(all_colmap.size());
+  for (const cv::Vec3d& x : all_colmap) r.ring_radius += cv::norm(x - ring_center);
+  r.ring_radius /= static_cast<double>(all_colmap.size());
+  // Umbral de RANSAC: 5 % de la dispersión de los centros comunes.
   cv::Vec3d centroid(0, 0, 0);
   for (const cv::Vec3d& x : to) centroid += x;
   centroid *= 1.0 / static_cast<double>(to.size());
   double spread2 = 0;
-  for (const cv::Vec3d& x : to) {
-    r.ring_radius += cv::norm(x - centroid);
-    spread2 += (x - centroid).dot(x - centroid);
-  }
-  r.ring_radius /= static_cast<double>(to.size());
+  for (const cv::Vec3d& x : to) spread2 += (x - centroid).dot(x - centroid);
   const double spread = std::sqrt(spread2 / static_cast<double>(to.size()));
 
   std::vector<int> inliers;
@@ -244,6 +251,7 @@ int generateColmapReference(ColmapRunner& colmap, const fs::path& image_dir, con
   for (const auto& entry : fs::directory_iterator(sparse)) {
     if (!entry.is_directory()) continue;
     const fs::path txt = out_dir / ("txt_" + entry.path().filename().string());
+    fs::create_directories(txt);  // model_converter 4.2.1 se cae (sin mensaje) si la carpeta no existe
     colmap.run("model_converter", {{"--input_path", entry.path().string()}, {"--output_path", txt.string()}, {"--output_type", "TXT"}});
     const std::size_t n = readColmapText(txt).images.size();
     if (n > best_images) best_images = n, best_dir = txt;
