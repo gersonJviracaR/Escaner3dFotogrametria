@@ -53,6 +53,7 @@ add_library(scanner_core STATIC
   src/sfm_types.cpp
   src/tracks.cpp
   src/triangulation.cpp
+  src/viewer.cpp
   src/visibility.cpp
 )
 target_include_directories(scanner_core PUBLIC src)
@@ -118,6 +119,7 @@ add_executable(scanner_tests
   tests/test_texturing.cpp
   tests/test_tracks.cpp
   tests/test_triangulation.cpp
+  tests/test_viewer.cpp
   tests/test_visibility.cpp
 )
 # Ejecutable falso de COLMAP para probar el ejecutor de procesos (Sprint 4).

@@ -131,6 +131,24 @@ TEST(ObjExport, InvalidReferencesAreRejected) {
   EXPECT_THROW(parseScaleRef("a,b,c;4,5,6;10"), std::invalid_argument);
 }
 
+TEST(ObjExport, ReadObjRoundTripsGeometryAndUv) {
+  const fs::path dir = fs::temp_directory_path() /
+                       ("escaner3d_objrt_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  const Mesh m = testmesh::cube();
+  TextureResult t = plainTexture(m);
+  t.face_uv[3] = {cv::Vec2f(0.25f, 0.5f), cv::Vec2f(0.75f, 0.5f), cv::Vec2f(0.5f, 1.0f)};
+  exportObj(dir, m, t, scaleByFactor(2.0));
+  const ObjModel back = readObj(dir / "model.obj");
+  fs::remove_all(dir);
+  ASSERT_EQ(back.mesh.vertices.size(), 8u);
+  ASSERT_EQ(back.mesh.faces.size(), 12u);
+  EXPECT_EQ(back.mesh.vertices[6], cv::Vec3f(2, 2, 2));  // escalado x2
+  EXPECT_EQ(back.mesh.faces[5], m.faces[5]);
+  EXPECT_EQ(back.face_uv[3][0], cv::Vec2f(0.25f, 0.5f));
+  EXPECT_EQ(back.texture_file, "texture.png");
+  EXPECT_THROW(readObj(dir / "no_existe.obj"), std::runtime_error);
+}
+
 TEST(ObjExport, WritesFilesAndReportsScaleUnitAndClosure) {
   const fs::path dir = fs::temp_directory_path() /
                        ("escaner3d_obj_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));

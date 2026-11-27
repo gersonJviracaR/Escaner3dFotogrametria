@@ -121,6 +121,60 @@ std::string mtlText(const std::string& texture_file) {
          texture_file + "\n";
 }
 
+ObjModel readObj(const fs::path& file) {
+  std::istringstream in(readFileBytes(file));  // lanza std::runtime_error si no existe
+  ObjModel o;
+  std::vector<cv::Vec2f> vt;
+  std::string line, mtllib;
+  auto index = [](const std::string& s, std::size_t n) {
+    const int k = std::stoi(s);
+    if (k < 1 || static_cast<std::size_t>(k) > n) throw std::runtime_error("índice fuera de rango en el OBJ: " + s);
+    return k - 1;
+  };
+  while (std::getline(in, line)) {
+    std::istringstream ss(line);
+    std::string tag;
+    ss >> tag;
+    if (tag == "v") {
+      cv::Vec3f v;
+      ss >> v[0] >> v[1] >> v[2];
+      o.mesh.vertices.push_back(v);
+    } else if (tag == "vt") {
+      cv::Vec2f t;
+      ss >> t[0] >> t[1];
+      vt.push_back(t);
+    } else if (tag == "mtllib") {
+      ss >> mtllib;
+    } else if (tag == "f") {
+      cv::Vec3i f;
+      std::array<cv::Vec2f, 3> uv{};
+      for (int q = 0; q < 3; ++q) {
+        std::string corner;
+        ss >> corner;
+        const std::size_t slash = corner.find('/');
+        f[q] = index(corner.substr(0, slash), o.mesh.vertices.size());
+        if (slash != std::string::npos) {
+          const std::size_t slash2 = corner.find('/', slash + 1);
+          const std::string t = corner.substr(slash + 1, slash2 == std::string::npos ? std::string::npos : slash2 - slash - 1);
+          if (!t.empty()) uv[static_cast<std::size_t>(q)] = vt[static_cast<std::size_t>(index(t, vt.size()))];
+        }
+      }
+      o.mesh.faces.push_back(f);
+      o.face_uv.push_back(uv);
+    }
+  }
+  if (!mtllib.empty() && fs::exists(file.parent_path() / mtllib)) {
+    std::istringstream mtl(readFileBytes(file.parent_path() / mtllib));
+    while (std::getline(mtl, line)) {
+      std::istringstream ss(line);
+      std::string tag;
+      ss >> tag;
+      if (tag == "map_Kd") ss >> o.texture_file;
+    }
+  }
+  return o;
+}
+
 ObjExport exportObj(const fs::path& dir, const Mesh& mesh, const TextureResult& texture, const ScaleSpec& scale) {
   fs::create_directories(dir);
   ObjExport r;

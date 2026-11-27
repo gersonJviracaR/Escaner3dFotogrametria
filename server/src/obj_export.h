@@ -41,6 +41,15 @@ struct ObjExport {
   int open_edges = 0;
 };
 
+// Lectura mínima de un OBJ triangulado (v, vt, f v/vt[/vn]) y del map_Kd de su MTL (para el visor).
+struct ObjModel {
+  Mesh mesh;
+  std::vector<std::array<cv::Vec2f, 3>> face_uv;
+  std::string texture_file;  // relativo a la carpeta del OBJ
+};
+// Lanza std::runtime_error si no se puede leer o los índices están fuera de rango.
+ObjModel readObj(const std::filesystem::path& file);
+
 // Escribe model.obj, model.mtl y texture.png en `dir` (escritura segura).
 ObjExport exportObj(const std::filesystem::path& dir, const Mesh& mesh, const TextureResult& texture,
                     const ScaleSpec& scale);
