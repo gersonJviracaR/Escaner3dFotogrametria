@@ -10,7 +10,7 @@ if(MSVC)
   add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
 endif()
 
-find_package(OpenCV CONFIG REQUIRED COMPONENTS core imgproc imgcodecs features2d calib3d)
+find_package(OpenCV CONFIG REQUIRED COMPONENTS core imgproc imgcodecs features2d calib3d highgui)
 find_package(Ceres CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 find_package(httplib CONFIG REQUIRED)
@@ -82,13 +82,14 @@ add_custom_command(TARGET scanner_reconstruct POST_BUILD
           ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:scanner_reconstruct>/config.default.json)
 
 # Sprint 4: herramientas del Epic 4 (copian config.default.json junto al ejecutable).
-foreach(tool scanner_dense scanner_texture scanner_accuracy)
+foreach(tool scanner_dense scanner_texture scanner_accuracy scanner_view)
   add_executable(${tool} tools/${tool}.cpp)
   target_link_libraries(${tool} PRIVATE scanner_core)
   add_custom_command(TARGET ${tool} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${CMAKE_CURRENT_SOURCE_DIR}/config.default.json $<TARGET_FILE_DIR:${tool}>/config.default.json)
 endforeach()
+target_link_libraries(scanner_view PRIVATE opencv_highgui)  # ventana del visor (HU-23)
 
 enable_testing()
 add_executable(scanner_tests
