@@ -1,6 +1,6 @@
-# Formatos de archivo de los Epics 2 y 3 (Sprints 2 y 3)
+# Formatos de archivo de los Epics 2, 3 y 4 (Sprints 2 a 4)
 
-Epic 2 (`scanner_match`): secciones 1 a 4. Epic 3 (`scanner_reconstruct`): secciones 5 a 9.
+Epic 2 (`scanner_match`): secciones 1 a 4. Epic 3 (`scanner_reconstruct`): secciones 5 a 9. Epic 4 (`scanner_dense`, `scanner_texture`, `scanner_view`, `scanner_accuracy`): secciones 10 a 15.
 
 `scanner_match` escribe tres tipos de archivo dentro de la carpeta de cada sesión (`sessions\<id>\`, ignorada por git):
 
@@ -264,3 +264,116 @@ Las dos imágenes son vistas ortográficas de la nube (con su color) y de las c�
 - **`debug_side.jpg`:** vista con la normal del anillo hacia arriba. El signo de la normal es arbitrario.
 
 Cada cámara aparece como un círculo rojo con su índice y una línea que marca su eje óptico. El encuadre usa los percentiles 2–98 de los puntos y todas las cámaras.
+
+### Opciones T0b de `scanner_match` (Sprint 4)
+
+Tres claves más en `matching`, **apagadas por defecto**: con estos valores el resultado es el del Sprint 2. El motivo y las mediciones están en `docs/sprint4-reporte.md`, sección T0.
+
+| Clave | Por defecto | Efecto |
+|---|---|---|
+| `sift_contrast_threshold` | 0,04 | `contrastThreshold` de `cv::SIFT` (0,04 es el valor de OpenCV) |
+| `guided_matching` | false | Un par **ya aceptado** se vuelve a emparejar solo dentro de la banda epipolar de su F (Sampson ≤ `ransac_threshold_px`), con el mismo ratio test entre las candidatas de la banda. Se conserva si sigue aceptado y tiene más inliers |
+| `mutual_check` | false | Solo se conservan las correspondencias recíprocas (A→B y B→A), en el emparejamiento normal y en el guiado |
+
+---
+
+# Epic 4 (Sprint 4): densificación, malla, textura, visor y precisión
+
+```
+sessions\<id>\
+  reconstruction\...                 (Sprint 3)
+  colmap_ours\sparse\0\              modelo propio exportado a formato COLMAP (texto)
+  dense\                             espacio de trabajo de COLMAP (images, stereo, ...) y fused.ply
+  model\    mesh_raw.ply, mesh.ply, model.obj, model.mtl, texture.png, model_report.json, colmap.log
+  colmap_ref\                        referencia de COLMAP: database.db, image_list.txt, sparse\, sparse_txt\
+  accuracy\accuracy_report.json, colmap.log
+  dense_colmap\, model_colmap\       lo mismo con las poses de COLMAP (--poses colmap, comparación)
+```
+
+Todos los archivos propios se escriben de forma segura (temporal + renombrado). La carpeta de cada sesión está ignorada por git.
+
+## 10. Modelo propio en formato COLMAP: `colmap_ours\sparse\0\`
+
+Son los tres archivos de texto de COLMAP (`cameras.txt`, `images.txt`, `points3D.txt`), escritos por `colmap_io.cpp` a partir de `reconstruction\reconstruction.json`.
+
+- **`cameras.txt`:** una sola cámara, `1 RADIAL ancho alto f cx cy k1 k2`, con `cx` y `cy` desplazados +0,5 (COLMAP pone el centro del primer píxel en (0,5; 0,5)).
+- **`images.txt`:** solo las cámaras **registradas**.
+  - `IMAGE_ID` es el índice de la foto (`img_###.jpg`).
+  - `QW QX QY QZ TX TY TZ` son la pose propia sin transformar (las convenciones coinciden).
+  - En la segunda línea van los puntos 2D `X Y POINT3D_ID`, con +0,5.
+- **`points3D.txt`:** `POINT3D_ID X Y Z R G B ERROR` y la pista `(IMAGE_ID, POINT2D_IDX)`. `ERROR` es el error de reproyección medio del punto.
+
+`readColmapText` lee también los modelos de COLMAP (`SIMPLE_PINHOLE`, `PINHOLE`, `SIMPLE_RADIAL`, `RADIAL`, una sola cámara) y resta el 0,5.
+
+## 11. Mallas: `dense\fused.ply`, `model\mesh_raw.ply`, `model\mesh.ply`
+
+- **`fused.ply`** (nube densa) y **`mesh_raw.ply`** (Poisson) los escribe COLMAP: PLY binario con `x y z`, normales en la nube y colores `red green blue`.
+- **`mesh.ply`** es la malla limpia:
+  - PLY binary_little_endian;
+  - propiedades `float x y z`, más `nx ny nz` y `uchar red green blue` si la malla original las tenía;
+  - caras como `list uchar int`.
+
+La limpieza (`cleanMesh`) quita:
+- las caras degeneradas (índices repetidos o área ≈ 0);
+- las componentes con menos de `mesh.min_component_faces` caras;
+- los vértices sin caras.
+
+## 12. OBJ, MTL y textura: `model\model.obj`, `model.mtl`, `texture.png`
+
+```
+# Escaner 3D por Fotogrametria (Sprint 4)
+# unidad: mm; factor de escala aplicado: 312.5        (o "escala arbitraria (monocular); factor 1")
+mtllib model.mtl
+v x y z                 (ya escalados)
+vt u v                  (uno por vértice de cara: 3 por cara)
+vn nx ny nz             (solo si la malla trae normales)
+usemtl material0
+f v/vt[/vn] v/vt[/vn] v/vt[/vn]      (índices base 1)
+```
+
+- **MTL:** `newmtl material0` con `map_Kd texture.png`, por ruta relativa.
+- **UV:**
+  - en [0, 1], con v hacia arriba (convención OBJ: v = 1 − y_atlas / alto);
+  - las caras sin cámara apuntan a un bloque gris neutro del atlas.
+- **Atlas:**
+  - cartas (caras vecinas con la misma cámara) recortadas de la foto **sin distorsión**, con un relleno de `texture.padding_px` píxeles;
+  - empaquetado por estantes en un ancho de `texture.atlas_max_size`;
+  - si no caben, todas las cartas se reducen por el mismo factor (`chart_scale` en el reporte).
+- **Escala** (HU-22):
+  - `--scale-ref "x1,y1,z1;x2,y2,z2;D_mm"` aplica el factor `D / |p1 − p2|` a todos los vértices, y la unidad pasa a ser mm;
+  - `--scale s` aplica un factor directo;
+  - sin ninguna de las dos, la escala es la arbitraria de la reconstrucción (distancia 1 entre las cámaras del par inicial).
+- **Impresión 3D:** el reporte dice si la malla es cerrada y cuántas aristas abiertas tiene. No se repara más allá de la limpieza.
+
+## 13. `model\model_report.json`
+
+Cada herramienta escribe su sección sin borrar las demás:
+
+| Sección | Campos |
+|---|---|
+| `dense` | `poses` (`ours` o `colmap`), `params`, versión de `colmap`, `cameras`, `sparse_points`, `dense_points`, `fused_ply`, `undistort_ms`, `patch_match_ms`, `fusion_ms` |
+| `mesh` | `raw_vertices`, `raw_faces`; `cleaning` (`degenerate_faces`, `small_components`, `small_component_faces`, `unreferenced_vertices`); `vertices`, `faces`, `components`, `open_edges`, `closed`, `area` (unidades de la reconstrucción), `poisson_ms`, `clean_ms` |
+| `texture` | `params`, `faces`, `textured_faces`, `textured_pct`, `faces_per_camera`, `charts`, `atlas_width`, `atlas_height`, `chart_scale`, `time_ms` |
+| `export` | `obj`, `scale`, `unit` (`mm`, `arbitraria` o `arbitraria x factor`), `vertices`, `faces`, `closed`, `open_edges` |
+
+## 14. `accuracy\accuracy_report.json`
+
+| Campo | Contenido |
+|---|---|
+| `cameras_ours`, `cameras_colmap`, `cameras_common` | Cámaras registradas en cada lado y comunes (emparejadas por nombre de imagen) |
+| `reliable`, `note` | `false` con menos de `accuracy.min_common_cameras` comunes: entonces no se dan errores de pose (`null`) |
+| `alignment` | Similitud de Umeyama propio → COLMAP (con RANSAC si hay más de 8 comunes; umbral 5 % de la dispersión de los centros comunes). Incluye `scale`, `ring_radius`, `inliers`, `position_error` y `rotation_error_deg` |
+| `alignment.ring_radius` | Distancia media de **todas** las cámaras de COLMAP a su centroide |
+| `alignment.position_error` | Media, RMS y máximo en unidades de COLMAP; `position_error_pct_radius` da lo mismo en % de `ring_radius` |
+| `alignment.rotation_error_deg` | Media y máximo |
+| `intrinsics` | `f_ours`, `f_colmap`, `f_diff_px`, `f_diff_pct`, `k1`/`k2` de cada uno |
+| `reprojection_error_px` | Media y RMS de `ours` y `colmap`, con la misma fórmula (`computeCameraErrors`) sobre el modelo de cada uno |
+| `sparse_points` | Cantidad de cada lado; distancia media y mediana de cada punto propio alineado al punto de COLMAP más cercano, y la mediana en % del radio |
+| `per_camera` | Por cámara común: `index`, `position_error`, `rotation_error_deg` y `alignment_inlier` |
+| `params`, `reference_ms`, `colmap_reference` | Parámetros, tiempo de la referencia y su carpeta |
+
+## 15. Imágenes del visor (`scanner_view --render`)
+
+- Una imagen de `viewer.width` × `viewer.height` con dos vistas: **general** (órbita alrededor del centroide) y **detalle** (zoom ×4 sobre el punto del modelo más cercano al centro de la vista general, o sobre el punto elegido con clic en la ventana).
+- Renderizado por software con z-buffer: los puntos son cuadrados de 2×2 con su color; los triángulos llevan la textura del atlas por coordenadas baricéntricas corregidas por perspectiva.
+- Los centros de cámara se dibujan en magenta.

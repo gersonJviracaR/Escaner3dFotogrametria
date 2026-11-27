@@ -3,13 +3,26 @@
 Proyecto del segundo parcial de *Graficación por Computadora*, Ingeniería Informática, UMSS (Cochabamba, Bolivia).
 Docente: Ing. Abraham Mamani Veliz. Programadores: Gerson Jared Viraca Rodriguez y Joel Matías Mantilla Villaca.
 
-El usuario toma con un celular Android unas 20 fotos alrededor de un objeto, guiado por la app. Las fotos viajan por Wi-Fi a la PC, donde un servidor en **C++17** las valida y, en los siguientes sprints, reconstruye la geometría 3D (SfM propio con OpenCV y Ceres; densificación y malla con COLMAP) hasta exportar un OBJ texturizado. **El celular no procesa imágenes: solo captura y envía.**
+El usuario toma con un celular Android unas 20 a 36 fotos alrededor de un objeto, guiado por la app. Las fotos viajan por Wi-Fi a la PC, donde un servidor en **C++17** hace lo siguiente:
+1. las valida;
+2. reconstruye la geometría 3D con un SfM propio (SIFT, geometría epipolar, triangulación, PnP y bundle adjustment con OpenCV y Ceres);
+3. densifica y mallea con COLMAP;
+4. texturiza la malla;
+5. la exporta como OBJ con escala opcional;
+6. la muestra en un visor propio;
+7. mide su precisión frente a COLMAP.
+
+**El celular no procesa imágenes: solo captura y envía.**
 
 ```
 Celular Android (Flutter)  ──HTTP/Wi-Fi local──▶  Servidor local en la PC (C++17)
  captura guiada + IMU                              recepción → control de calidad (OpenCV)
- envío de la sesión                                → [Sprints 2-4] SIFT → epipolar → triangulación
-                                                     → Ceres BA → COLMAP densa/malla → OBJ + reporte
+ envío de la sesión                                → scanner_match: SIFT → pares vecinos → F, E
+                                                   → scanner_reconstruct: triangulación → PnP → Ceres BA
+                                                   → scanner_dense: COLMAP densa → malla Poisson + limpieza
+                                                   → scanner_texture: textura por triángulo → OBJ/MTL/PNG
+                                                   → scanner_accuracy: comparación con COLMAP
+                                                   → scanner_view: vista general y de detalle
 ```
 
 ## Estado
@@ -19,18 +32,22 @@ Celular Android (Flutter)  ──HTTP/Wi-Fi local──▶  Servidor local en la
 | 1 | Captura móvil y recepción en servidor local | **Completo** (ver [docs/sprint1-reporte.md](docs/sprint1-reporte.md)) |
 | 2 | Características y geometría epipolar | **Completo** (ver [docs/sprint2-reporte.md](docs/sprint2-reporte.md)) |
 | 3 | Reconstrucción dispersa y bundle adjustment | **Completo**, con resultado parcial en la sesión real: 11 de 34 cámaras (ver [docs/sprint3-reporte.md](docs/sprint3-reporte.md)) |
-| 4 | Malla texturizada y exportación | Pendiente |
+| 4 | Malla texturizada, exportación y precisión | **Completo** (ver [docs/sprint4-reporte.md](docs/sprint4-reporte.md)) |
 
 ## Estructura
 
 ```
-server/    servidor C++17 (CMake + vcpkg): HTTP, sesiones, manifiesto, control de calidad;
-           tools/scanner_match.cpp (SIFT, pares vecinos, F y E por sesión);
-           tools/scanner_reconstruct.cpp (triangulación, PnP, bundle adjustment con Ceres)
-mobile/    app Flutter para Android (captura guiada y envío)
-scripts/   check-env.ps1, open-firewall.ps1, smoke-test.ps1 (PowerShell)
-docs/      entorno.md, api.md, formatos.md, sprint1-backlog.md, sprint1-reporte.md,
-           sprint2-backlog.md, sprint2-reporte.md, sprint3-backlog.md, sprint3-reporte.md
+server/          servidor C++17 (CMake + vcpkg)
+  src/           scanner_core: HTTP, sesiones, calidad, SIFT, epipolar, SfM, BA, COLMAP, malla,
+                 textura, OBJ, visor y precisión
+  tools/         scanner_match, scanner_reconstruct, scanner_dense, scanner_texture,
+                 scanner_view, scanner_accuracy
+  tests/         pruebas GoogleTest (datos sintéticos; COLMAP simulado con colmap_stub)
+mobile/          app Flutter para Android (captura guiada y envío)
+scripts/         check-env.ps1, open-firewall.ps1, smoke-test.ps1, run-pipeline.ps1 (PowerShell)
+docs/            entorno.md, api.md, formatos.md, colmap.md, sprint1..4-backlog.md, sprint1..4-reporte.md,
+                 img\ (imágenes del visor para el informe)
+sessions\<id>\   (no se sube) fotos, manifiesto y todas las salidas del pipeline
 ```
 
 ## Requisitos (Windows 11)
@@ -146,6 +163,29 @@ Imprime una tabla por cámara (error medio y RMS antes y después del BA final) 
 - `reconstruction_report.json`;
 - `sparse_cloud.ply`, que se abre con MeshLab o CloudCompare; los vértices magenta son las cámaras.
 
+### Del modelo disperso al OBJ texturizado (Sprint 4)
+
+Todo el pipeline sobre una sesión, con el tiempo de cada etapa y parada clara si alguna falla:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run-pipeline.ps1 -Session sessions\20261121-142259-tenis
+# con escala real: dos puntos del modelo (tomados en MeshLab) y su distancia en mm
+powershell -ExecutionPolicy Bypass -File scripts\run-pipeline.ps1 -Session sessions\<id> -ScaleRef "x1,y1,z1;x2,y2,z2;85"
+```
+
+O cada herramienta por separado (desde `server\`):
+
+| Herramienta | Qué hace | Salidas en la sesión |
+|---|---|---|
+| `scanner_dense --session S [--max-image-size 1600] [--poses ours\|colmap]` | Exporta las poses refinadas a COLMAP, densifica (HU-19) y mallea con Poisson y limpieza propia (HU-20) | `colmap_ours\`, `dense\fused.ply`, `model\mesh.ply` |
+| `scanner_texture --session S [--scale-ref "..."\|--scale s]` | Mejor cámara por triángulo, atlas y UV (HU-21); OBJ, MTL y PNG con escala opcional (HU-22) | `model\model.obj`, `model.mtl`, `texture.png` |
+| `scanner_view --session S [--cloud sparse\|dense] [--mesh] [--render salida.png]` | Vista general y de detalle (HU-23). Ventana: arrastrar rota, rueda acerca, clic elige el detalle, `1`/`2`/`3` cambian de modelo, `q` sale | imagen con `--render` |
+| `scanner_accuracy --session S [--reuse-reference]` | Genera la referencia de COLMAP sobre las mismas fotos y compara cámaras, focal, reproyección y puntos (HU-24) | `colmap_ref\`, `accuracy\accuracy_report.json` |
+
+- Requiere COLMAP con CUDA (ver [docs/colmap.md](docs/colmap.md)).
+- `model\model_report.json` resume cada etapa.
+- `--poses colmap` repite la densificación, la malla y la textura con las poses de la referencia de COLMAP, en `dense_colmap\` y `model_colmap\`. Es solo una comparación: la ruta oficial usa nuestras poses.
+
 ## App Android
 
 ### Compilar
@@ -174,6 +214,29 @@ Requiere Android 8.0 (API 26) o superior. La APK de release se firma con la clav
 4. Gira alrededor del objeto. La guía indica cuándo tomar cada foto, aproximadamente cada 18°: verde = listo, naranja = sigue girando, rojo = giraste demasiado. El contador muestra `n / 20`.
 5. Pulsa **Enviar sesión**, que se habilita desde 12 fotos. La app sube las fotos una a una y luego muestra las rechazadas por estar **borrosas** o **saturadas**.
 6. Pulsa **Repetir foto(s) rechazada(s)**, vuelve a tomarlas desde la misma posición y la app las reenvía.
+
+## Resultados obtenidos (sesión `tenis`, 36 fotos de una zapatilla)
+
+| Etapa | Resultado |
+|---|---|
+| Calidad (Sprint 1) | 34 de 36 fotos aceptadas (2 borrosas) |
+| Emparejamiento (Sprint 2) | 62 pares aceptados de 105 seleccionados; grafo con 2 componentes (contraluz en las fotos 9–12) |
+| Reconstrucción dispersa (Sprint 3) | 11 de 34 cámaras, 734 puntos, error de reproyección RMS 0,50 px, f 3079 px |
+| Nube densa (HU-19) | 113 172 puntos (COLMAP con nuestras poses, ~7,6 min en una RTX 3050) |
+| Malla (HU-20) | 22 606 vértices, 43 361 caras, abierta |
+| Textura (HU-21) | 76 % de las caras con textura; atlas de 4095×3730 |
+| Precisión frente a COLMAP (HU-24) | En las 11 cámaras comunes: posición a 0,14 % del radio del anillo, rotación a 0,28°, f a −0,18 % |
+
+Las imágenes del visor están en [docs/img](docs/img), y los detalles en [docs/sprint4-reporte.md](docs/sprint4-reporte.md).
+
+## Limitaciones conocidas
+
+- **Cobertura parcial del objeto.** Con la sesión `tenis`, nuestro SfM registra 11 de 34 cámaras: un arco de ~115°, el frente y un costado de la zapatilla. COLMAP, con emparejamiento exhaustivo, registra 30. El límite es la densidad del emparejamiento del Sprint 2, no la precisión: en las cámaras comunes coincidimos con COLMAP.
+- **Comparación con 30 cámaras.** `--poses colmap` permite densificar con las poses de COLMAP para ver el modelo completo, documentado como comparación.
+- **Malla con fragmentos del entorno y abierta.** No se cierra ni se segmenta el objeto: antes de imprimir hay que repararla en MeshLab.
+- **Textura sin mezcla de colores entre cartas.** Se notan costuras.
+- **Escala arbitraria** salvo que se indique `--scale-ref` con una medida real.
+- **Capturas.** Evitar contraluz y fondos sin textura, tomar fotos nítidas cada ~10° y no repetir fotos fuera de orden.
 
 ## Tecnologías
 
