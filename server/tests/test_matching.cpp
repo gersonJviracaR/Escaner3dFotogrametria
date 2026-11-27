@@ -7,6 +7,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include <cmath>
+#include <set>
 
 namespace {
 
@@ -112,4 +113,75 @@ TEST(Matching, TooFewDescriptorsGiveNoMatches) {
   single.descriptors = fa.descriptors.row(0).clone();
   EXPECT_TRUE(matchFeatures(fa, single, 0.75).empty());  // sin segundo vecino no hay ratio test
   EXPECT_TRUE(matchFeatures(ImageFeatures{}, fa, 0.75).empty());
+}
+
+// ---------- T0b (Sprint 4): emparejamiento guiado por F, opción apagada por defecto ----------
+
+TEST(GuidedMatching, MatchesStayOnEpipolarLinesAndAreCorrect) {
+  // Traslación horizontal pura de 20 px: F = [t]x con t = (1, 0, 0) -> líneas epipolares y' = y.
+  const WarpedPair w = warpedPair(0.0, 1.0, {20, 0});
+  const MatchingParams p;
+  const ImageFeatures fa = extractFeatures(w.a, p);
+  const ImageFeatures fb = extractFeatures(w.b, p);
+  const cv::Matx33d F(0, 0, 0, 0, 0, -1, 0, 1, 0);
+  const std::vector<FeatureMatch> guided = matchFeaturesGuided(fa, fb, F, 1.0, p.ratio);
+  const std::vector<FeatureMatch> plain = matchFeatures(fa, fb, p.ratio);
+  ASSERT_GT(guided.size(), 100u);
+  EXPECT_GE(guided.size(), plain.size());  // el ratio entre candidatas de la banda es menos ambiguo
+  int correct = 0;
+  for (const FeatureMatch& m : guided) {
+    EXPECT_LE(std::abs(m.point_b.y - m.point_a.y), 1.0f / std::sqrt(0.5f) + 1e-3f);  // Sampson <= 1 px
+    if (transferError(w, m) <= 3.0) ++correct;
+  }
+  EXPECT_GE(static_cast<double>(correct) / guided.size(), 0.95);
+}
+
+TEST(GuidedMatching, EachPointOfBIsUsedOnce) {
+  const WarpedPair w = warpedPair(0.0, 1.0, {20, 0});
+  const ImageFeatures fa = extractFeatures(w.a, MatchingParams{});
+  const ImageFeatures fb = extractFeatures(w.b, MatchingParams{});
+  const std::vector<FeatureMatch> guided =
+      matchFeaturesGuided(fa, fb, cv::Matx33d(0, 0, 0, 0, 0, -1, 0, 1, 0), 1.0, 0.75);
+  std::set<int> used;
+  for (const FeatureMatch& m : guided) EXPECT_TRUE(used.insert(m.index_b).second);
+}
+
+TEST(MutualCheck, KeepsOnlyReciprocalBestMatches) {
+  const WarpedPair w = warpedPair(15.0, 0.9, {10, 5});
+  const MatchingParams p;
+  const ImageFeatures fa = extractFeatures(w.a, p);
+  const ImageFeatures fb = extractFeatures(w.b, p);
+  const std::vector<FeatureMatch> plain = matchFeatures(fa, fb, p.ratio);
+  const std::vector<FeatureMatch> mutual = matchFeatures(fa, fb, p.ratio, /*mutual_check=*/true);
+  ASSERT_FALSE(mutual.empty());
+  EXPECT_LE(mutual.size(), plain.size());
+  std::set<int> used_b;
+  for (const FeatureMatch& m : mutual) {
+    EXPECT_TRUE(used_b.insert(m.index_b).second);
+    // El vecino más cercano de b en A es a.
+    double best = 1e30;
+    int best_a = -1;
+    for (int k = 0; k < fa.descriptors.rows; ++k) {
+      const double d = cv::norm(fa.descriptors.row(k), fb.descriptors.row(m.index_b), cv::NORM_L2);
+      if (d < best) best = d, best_a = k;
+    }
+    EXPECT_EQ(best_a, m.index_a);
+  }
+  // Sin la opción, el resultado es el del Sprint 2.
+  EXPECT_EQ(matchFeatures(fa, fb, p.ratio, false).size(), plain.size());
+}
+
+TEST(MutualCheck, GuidedMutualIsSymmetric) {
+  const WarpedPair w = warpedPair(0.0, 1.0, {20, 0});
+  const ImageFeatures fa = extractFeatures(w.a, MatchingParams{});
+  const ImageFeatures fb = extractFeatures(w.b, MatchingParams{});
+  const cv::Matx33d F(0, 0, 0, 0, 0, -1, 0, 1, 0);
+  const auto ab = matchFeaturesGuided(fa, fb, F, 1.0, 0.75, true);
+  const auto ba = matchFeaturesGuided(fb, fa, F.t(), 1.0, 0.75, true);
+  ASSERT_EQ(ab.size(), ba.size());
+  std::set<std::pair<int, int>> s1, s2;
+  for (const FeatureMatch& m : ab) s1.insert({m.index_a, m.index_b});
+  for (const FeatureMatch& m : ba) s2.insert({m.index_b, m.index_a});
+  EXPECT_EQ(s1, s2);
+  EXPECT_LE(ab.size(), matchFeaturesGuided(fa, fb, F, 1.0, 0.75).size());
 }

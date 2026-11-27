@@ -78,6 +78,22 @@ TEST(MatchingConfig, NeighborIndexWindowDefaultsAndSprint2Mode) {
   EXPECT_EQ(applyMatchingOverride(MatchingParams{}, "--neighbor-index-window", "0").neighbor_index_window, 0);
 }
 
+TEST(MatchingConfig, T0bOptionsAreOffByDefault) {
+  const MatchingParams p;
+  EXPECT_DOUBLE_EQ(p.sift_contrast_threshold, 0.04);  // el de OpenCV, como en el Sprint 2
+  EXPECT_FALSE(p.guided_matching);
+  EXPECT_FALSE(p.mutual_check);
+  const ServerConfig c = applyConfigJson(
+      ServerConfig{}, json::parse(R"({"matching":{"sift_contrast_threshold":0.02,"guided_matching":true}})"));
+  EXPECT_DOUBLE_EQ(c.matching.sift_contrast_threshold, 0.02);
+  EXPECT_TRUE(c.matching.guided_matching);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"sift_contrast_threshold":0}})")),
+               ConfigError);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"guided_matching":"si"}})")),
+               ConfigError);
+  EXPECT_TRUE(applyMatchingOverride(MatchingParams{}, "--guided-matching", "true").guided_matching);
+}
+
 TEST(MatchingConfig, PartialOverrideKeepsOtherValues) {
   const ServerConfig c =
       applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"ratio":0.8,"clahe":false}})"));

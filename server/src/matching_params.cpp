@@ -29,7 +29,7 @@ const std::set<std::string> kKnownKeys = {
     "work_long_side",      "max_features",      "clahe",       "clahe_clip_limit", "clahe_tile",
     "ratio",               "max_angle_deg",     "max_neighbors", "ransac_threshold_px",
     "ransac_confidence",   "min_inliers",       "min_inlier_ratio", "fallback_focal_factor",
-    "neighbor_index_window", "ring_closure"};
+    "neighbor_index_window", "ring_closure", "sift_contrast_threshold", "guided_matching", "mutual_check"};
 
 std::string keyFromOption(const std::string& option) {
   if (option.rfind("--", 0) != 0) return {};
@@ -68,6 +68,17 @@ MatchingParams applyMatchingJson(MatchingParams p, const json& j) {
     if (!j.at("ring_closure").is_boolean()) throw std::invalid_argument("matching.ring_closure debe ser true o false");
     p.ring_closure = j.at("ring_closure").get<bool>();
   }
+  if (j.contains("sift_contrast_threshold"))
+    p.sift_contrast_threshold = numberIn(j, "sift_contrast_threshold", 0, 1, true, true);
+  if (j.contains("guided_matching")) {
+    if (!j.at("guided_matching").is_boolean())
+      throw std::invalid_argument("matching.guided_matching debe ser true o false");
+    p.guided_matching = j.at("guided_matching").get<bool>();
+  }
+  if (j.contains("mutual_check")) {
+    if (!j.at("mutual_check").is_boolean()) throw std::invalid_argument("matching.mutual_check debe ser true o false");
+    p.mutual_check = j.at("mutual_check").get<bool>();
+  }
   if (j.contains("ransac_threshold_px"))
     p.ransac_threshold_px = numberIn(j, "ransac_threshold_px", 0, kInf, true, false);
   if (j.contains("ransac_confidence")) p.ransac_confidence = numberIn(j, "ransac_confidence", 0, 1, true, true);
@@ -89,6 +100,9 @@ json toJson(const MatchingParams& p) {
               {"max_neighbors", p.max_neighbors},
               {"neighbor_index_window", p.neighbor_index_window},
               {"ring_closure", p.ring_closure},
+              {"sift_contrast_threshold", p.sift_contrast_threshold},
+              {"guided_matching", p.guided_matching},
+              {"mutual_check", p.mutual_check},
               {"ransac_threshold_px", p.ransac_threshold_px},
               {"ransac_confidence", p.ransac_confidence},
               {"min_inliers", p.min_inliers},

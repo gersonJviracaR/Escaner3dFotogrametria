@@ -99,7 +99,7 @@ ImageFeatures extractFeatures(const cv::Mat& image, const MatchingParams& params
   f.work_width = work.cols;
   f.work_height = work.rows;
 
-  cv::Ptr<cv::SIFT> sift = cv::SIFT::create(params.max_features);
+  cv::Ptr<cv::SIFT> sift = cv::SIFT::create(params.max_features, 3, params.sift_contrast_threshold);
   std::vector<cv::KeyPoint> kps;
   cv::Mat desc;
   sift->detectAndCompute(work, cv::noArray(), kps, desc);
