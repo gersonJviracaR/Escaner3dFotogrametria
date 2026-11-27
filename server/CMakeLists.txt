@@ -18,6 +18,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 # Núcleo reutilizable por los Sprints 2-4.
 add_library(scanner_core STATIC
+  src/accuracy.cpp
   src/atomic_file.cpp
   src/bundle_adjustment.cpp
   src/camera_model.cpp
@@ -35,6 +36,7 @@ add_library(scanner_core STATIC
   src/meshing.cpp
   src/matching_params.cpp
   src/matching_report.cpp
+  src/obj_export.cpp
   src/pairing.cpp
   src/pipeline_params.cpp
   src/quality.cpp
@@ -47,6 +49,7 @@ add_library(scanner_core STATIC
   src/session_pipeline.cpp
   src/session_reconstruction.cpp
   src/session_store.cpp
+  src/texturing.cpp
   src/sfm_types.cpp
   src/tracks.cpp
   src/triangulation.cpp
@@ -88,6 +91,7 @@ endforeach()
 
 enable_testing()
 add_executable(scanner_tests
+  tests/test_accuracy.cpp
   tests/test_bundle_adjustment.cpp
   tests/test_camera_model.cpp
   tests/test_colmap.cpp
@@ -101,6 +105,7 @@ add_executable(scanner_tests
   tests/test_matching.cpp
   tests/test_meshing.cpp
   tests/test_matching_report.cpp
+  tests/test_obj_export.cpp
   tests/test_pairing.cpp
   tests/test_quality.cpp
   tests/test_reconstruction_io.cpp
@@ -110,6 +115,7 @@ add_executable(scanner_tests
   tests/test_session_pipeline.cpp
   tests/test_session_reconstruction.cpp
   tests/test_session_store.cpp
+  tests/test_texturing.cpp
   tests/test_tracks.cpp
   tests/test_triangulation.cpp
   tests/test_visibility.cpp
