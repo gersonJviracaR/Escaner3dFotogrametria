@@ -2,6 +2,7 @@
 #pragma once
 
 #include "matching_params.h"
+#include "pipeline_params.h"
 #include "reconstruction_params.h"
 #include "quality.h"
 
@@ -25,6 +26,11 @@ struct ServerConfig {
   QualityThresholds quality;
   MatchingParams matching;              // la usa scanner_match (Sprint 2), no el servidor HTTP
   ReconstructionParams reconstruction;  // la usa scanner_reconstruct (Sprint 3)
+  DenseParams dense;                    // Sprint 4: scanner_dense
+  MeshParams mesh;
+  TextureParams texture;                // Sprint 4: scanner_texture
+  ViewerParams viewer;                  // Sprint 4: scanner_view
+  AccuracyParams accuracy;              // Sprint 4: scanner_accuracy
 };
 
 // Aplica sobre `base` solo los campos presentes en el JSON.

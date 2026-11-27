@@ -17,6 +17,9 @@
     "max_neighbors": 6,
     "neighbor_index_window": 0,
     "ring_closure": false,
+    "sift_contrast_threshold": 0.04,
+    "guided_matching": false,
+    "mutual_check": false,
     "ransac_threshold_px": 1.0,
     "ransac_confidence": 0.999,
     "min_inliers": 30,
@@ -38,5 +41,10 @@
     "huber_delta_px": 1.0,
     "refine_focal": true,
     "refine_distortion": true
-  }
+  },
+  "dense": { "colmap_path": "", "max_image_size": 1600, "geom_consistency": true },
+  "mesh": { "poisson_depth": 9, "trim_density": 7.0, "min_component_faces": 100 },
+  "texture": { "min_cos": 0.2, "atlas_max_size": 4096, "depth_map_long_side": 1000, "padding_px": 2 },
+  "viewer": { "width": 1280, "height": 640, "max_triangles_interactive": 150000 },
+  "accuracy": { "min_common_cameras": 4, "ransac_iterations": 200 }
 }

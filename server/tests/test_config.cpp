@@ -78,6 +78,22 @@ TEST(MatchingConfig, NeighborIndexWindowDefaultsAndSprint2Mode) {
   EXPECT_EQ(applyMatchingOverride(MatchingParams{}, "--neighbor-index-window", "0").neighbor_index_window, 0);
 }
 
+TEST(MatchingConfig, T0bOptionsAreOffByDefault) {
+  const MatchingParams p;
+  EXPECT_DOUBLE_EQ(p.sift_contrast_threshold, 0.04);  // el de OpenCV, como en el Sprint 2
+  EXPECT_FALSE(p.guided_matching);
+  EXPECT_FALSE(p.mutual_check);
+  const ServerConfig c = applyConfigJson(
+      ServerConfig{}, json::parse(R"({"matching":{"sift_contrast_threshold":0.02,"guided_matching":true}})"));
+  EXPECT_DOUBLE_EQ(c.matching.sift_contrast_threshold, 0.02);
+  EXPECT_TRUE(c.matching.guided_matching);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"sift_contrast_threshold":0}})")),
+               ConfigError);
+  EXPECT_THROW(applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"guided_matching":"si"}})")),
+               ConfigError);
+  EXPECT_TRUE(applyMatchingOverride(MatchingParams{}, "--guided-matching", "true").guided_matching);
+}
+
 TEST(MatchingConfig, PartialOverrideKeepsOtherValues) {
   const ServerConfig c =
       applyConfigJson(ServerConfig{}, json::parse(R"({"matching":{"ratio":0.8,"clahe":false}})"));
@@ -170,6 +186,54 @@ TEST(ReconstructionConfig, CommandLineOverrides) {
   EXPECT_TRUE(isReconstructionOverride("--ba-every"));
   EXPECT_FALSE(isReconstructionOverride("--ratio"));
   EXPECT_THROW(applyReconstructionOverride(p, "--min-views", "x"), std::invalid_argument);
+}
+
+TEST(PipelineConfig, DefaultsMatchSprint4Spec) {
+  const ServerConfig c;
+  EXPECT_EQ(c.dense.colmap_path, "");
+  EXPECT_EQ(c.dense.max_image_size, 1600);
+  EXPECT_TRUE(c.dense.geom_consistency);
+  EXPECT_EQ(c.mesh.poisson_depth, 9);
+  EXPECT_DOUBLE_EQ(c.mesh.trim_density, 7.0);
+  EXPECT_EQ(c.mesh.min_component_faces, 100);
+  EXPECT_DOUBLE_EQ(c.texture.min_cos, 0.2);
+  EXPECT_EQ(c.texture.atlas_max_size, 4096);
+  EXPECT_EQ(c.texture.depth_map_long_side, 1000);
+  EXPECT_EQ(c.texture.padding_px, 2);
+  EXPECT_EQ(c.viewer.width, 1280);
+  EXPECT_EQ(c.viewer.height, 640);
+  EXPECT_EQ(c.viewer.max_triangles_interactive, 150000);
+  EXPECT_EQ(c.accuracy.min_common_cameras, 4);
+  EXPECT_EQ(c.accuracy.ransac_iterations, 200);
+}
+
+TEST(PipelineConfig, PartialOverrideAndDefaultFile) {
+  const ServerConfig c = applyConfigJson(
+      ServerConfig{}, json::parse(R"({"dense":{"max_image_size":1200},"texture":{"min_cos":0.3},"mesh":{"poisson_depth":8}})"));
+  EXPECT_EQ(c.dense.max_image_size, 1200);
+  EXPECT_TRUE(c.dense.geom_consistency);
+  EXPECT_DOUBLE_EQ(c.texture.min_cos, 0.3);
+  EXPECT_EQ(c.mesh.poisson_depth, 8);
+  EXPECT_EQ(c.accuracy.min_common_cameras, 4);
+  const ServerConfig f = applyConfigFile(ServerConfig{}, ESCANER3D_DEFAULT_CONFIG);
+  EXPECT_EQ(toJson(f.dense), toJson(DenseParams{}));
+  EXPECT_EQ(toJson(f.mesh), toJson(MeshParams{}));
+  EXPECT_EQ(toJson(f.texture), toJson(TextureParams{}));
+  EXPECT_EQ(toJson(f.viewer), toJson(ViewerParams{}));
+  EXPECT_EQ(toJson(f.accuracy), toJson(AccuracyParams{}));
+}
+
+TEST(PipelineConfig, InvalidValuesThrow) {
+  auto apply = [](const char* text) { return applyConfigJson(ServerConfig{}, json::parse(text)); };
+  EXPECT_THROW(apply(R"({"dense":{"max_image_size":50}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"dense":{"colmap_path":3}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"mesh":{"poisson_depth":30}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"mesh":{"trim_density":-1}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"texture":{"min_cos":1.5}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"texture":{"atlas_max_size":10}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"viewer":{"width":0}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"accuracy":{"min_common_cameras":2}})"), ConfigError);
+  EXPECT_THROW(apply(R"({"accuracy":{"iteraciones":5}})"), ConfigError);  // clave desconocida
 }
 
 TEST(Config, CommandLineErrors) {

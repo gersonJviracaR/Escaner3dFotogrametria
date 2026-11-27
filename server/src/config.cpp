@@ -38,6 +38,11 @@ ServerConfig applyConfigJson(ServerConfig c, const json& j) {
     if (j.contains("matching")) c.matching = applyMatchingJson(c.matching, j.at("matching"));
     if (j.contains("reconstruction"))
       c.reconstruction = applyReconstructionJson(c.reconstruction, j.at("reconstruction"));
+    if (j.contains("dense")) c.dense = applyDenseJson(c.dense, j.at("dense"));
+    if (j.contains("mesh")) c.mesh = applyMeshJson(c.mesh, j.at("mesh"));
+    if (j.contains("texture")) c.texture = applyTextureJson(c.texture, j.at("texture"));
+    if (j.contains("viewer")) c.viewer = applyViewerJson(c.viewer, j.at("viewer"));
+    if (j.contains("accuracy")) c.accuracy = applyAccuracyJson(c.accuracy, j.at("accuracy"));
   } catch (const json::exception& e) {
     throw ConfigError(std::string("configuración inválida: ") + e.what());
   } catch (const std::invalid_argument& e) {

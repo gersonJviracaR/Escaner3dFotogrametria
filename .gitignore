@@ -28,3 +28,6 @@ mobile/android/app/release/
 # Configuración local (rutas o IPs propias)
 server/config.local.json
 *.local.json
+
+# Documentos de trabajo de cada sprint (instrucciones para Claude Code): quedan fuera del repositorio.
+/SPRINT*_CLAUDE_CODE.md

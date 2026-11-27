@@ -58,7 +58,7 @@ PairWork processPair(const LoadedView& vi, const LoadedView& vj, double angle_de
   pr.angle_deg = angle_deg;
 
   const Clock::time_point t_match = Clock::now();
-  w.matches = matchFeatures(vi.features, vj.features, params.ratio);
+  w.matches = matchFeatures(vi.features, vj.features, params.ratio, params.mutual_check);
   pr.match_ms = msSince(t_match);
 
   std::vector<cv::Point2f> pts_i, pts_j;
@@ -69,8 +69,28 @@ PairWork processPair(const LoadedView& vi, const LoadedView& vj, double angle_de
     pts_j.push_back(m.point_b);
   }
   const Clock::time_point t_geom = Clock::now();
-  const PairGeometry g = estimatePairGeometry(pts_i, pts_j, vi.K, vj.K, params);
+  PairGeometry g = estimatePairGeometry(pts_i, pts_j, vi.K, vj.K, params);
   pr.geometry_ms = msSince(t_geom);
+
+  // T0b (opción, apagada por defecto): un par ya aceptado se vuelve a emparejar dentro de la
+  // banda epipolar de su F, con el mismo ratio test y el mismo umbral; se queda el
+  // resultado guiado solo si también es aceptado y tiene más inliers.
+  if (params.guided_matching && g.accepted) {
+    const Clock::time_point t_guided = Clock::now();
+    std::vector<FeatureMatch> guided =
+        matchFeaturesGuided(vi.features, vj.features, g.F, params.ransac_threshold_px, params.ratio, params.mutual_check);
+    std::vector<cv::Point2f> gi, gj;
+    for (const FeatureMatch& m : guided) {
+      gi.push_back(m.point_a);
+      gj.push_back(m.point_b);
+    }
+    PairGeometry g2 = estimatePairGeometry(gi, gj, vi.K, vj.K, params);
+    if (g2.accepted && g2.n_inliers > g.n_inliers) {
+      w.matches = std::move(guided);
+      g = std::move(g2);
+    }
+    pr.match_ms += msSince(t_guided);
+  }
 
   pr.n_matches = g.n_matches;
   pr.n_inliers = g.n_inliers;

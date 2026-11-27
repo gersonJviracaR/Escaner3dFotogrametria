@@ -237,3 +237,26 @@ TEST(Features, ReadingInvalidFileThrows) {
   fs::remove(file);
   EXPECT_THROW(readFeatures(file), FeatureFileError);  // no existe
 }
+
+// ---------- T0b (Sprint 4): umbral de contraste de SIFT configurable ----------
+
+TEST(Features, DefaultContrastThresholdReproducesSprint2) {
+  const cv::Mat img = testimg::blobTexture(800, 600, 13);
+  MatchingParams explicit_default;
+  explicit_default.sift_contrast_threshold = 0.04;  // valor por defecto de cv::SIFT
+  const ImageFeatures a = extractFeatures(img, MatchingParams{});
+  const ImageFeatures b = extractFeatures(img, explicit_default);
+  ASSERT_EQ(a.keypoints.size(), b.keypoints.size());
+  EXPECT_EQ(cv::norm(a.descriptors, b.descriptors, cv::NORM_INF), 0.0);
+}
+
+TEST(Features, LowerContrastThresholdFindsMorePoints) {
+  // Textura de bajo contraste (como la zapatilla azul oscura).
+  cv::Mat low;
+  testimg::blobTexture(800, 600, 17).convertTo(low, CV_8U, 0.15, 40);
+  MatchingParams p;
+  p.clahe = false;
+  const std::size_t base = extractFeatures(low, p).keypoints.size();
+  p.sift_contrast_threshold = 0.01;
+  EXPECT_GT(extractFeatures(low, p).keypoints.size(), base + base / 4);
+}

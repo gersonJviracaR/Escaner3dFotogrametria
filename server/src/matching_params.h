@@ -23,6 +23,10 @@ struct MatchingParams {
   // Sprint 2): en la sesión tenis la ventana 3 no agregó ningún par (ver sprint3-reporte.md).
   int neighbor_index_window = 0;
   bool ring_closure = false;
+  // T0b (Sprint 4), apagadas por defecto: con 0,04 / false se reproduce el Sprint 2.
+  double sift_contrast_threshold = 0.04;  // contrastThreshold de cv::SIFT
+  bool guided_matching = false;           // re-emparejar los pares aceptados dentro de la banda epipolar de F
+  bool mutual_check = false;              // conservar solo correspondencias recíprocas (A->B y B->A)
   // HU-11 / HU-12: geometría epipolar
   double ransac_threshold_px = 1.0;  // umbral de Sampson (px de la imagen original)
   double ransac_confidence = 0.999;
