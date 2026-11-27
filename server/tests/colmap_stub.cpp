@@ -56,6 +56,18 @@ int main(int argc, char** argv) {
   } else if (command == "image_undistorter") {
     const std::string path = optionValue(argc, argv, "--output_path");
     if (!path.empty()) fs::create_directories(path);
+  } else if (command == "mapper") {
+    const std::string path = optionValue(argc, argv, "--output_path");
+    if (!path.empty()) fs::create_directories(fs::path(path) / "0");
+  } else if (command == "model_converter") {
+    // Modelo de texto mínimo: una cámara y dos imágenes.
+    const fs::path out = optionValue(argc, argv, "--output_path");
+    if (!out.empty()) {
+      fs::create_directories(out);
+      std::ofstream(out / "cameras.txt") << "1 RADIAL 4000 3000 3093 2000.5 1500.5 0.01 0\n";
+      std::ofstream(out / "images.txt") << "1 1 0 0 0 0 0 0 1 img_001.jpg\n\n2 1 0 0 0 1 0 0 1 img_002.jpg\n\n";
+      std::ofstream(out / "points3D.txt") << "";
+    }
   }
   return 0;
 }
