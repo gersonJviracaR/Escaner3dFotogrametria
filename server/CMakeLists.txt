@@ -21,7 +21,10 @@ add_library(scanner_core STATIC
   src/atomic_file.cpp
   src/bundle_adjustment.cpp
   src/camera_model.cpp
+  src/colmap_io.cpp
+  src/colmap_runner.cpp
   src/config.cpp
+  src/dense.cpp
   src/epipolar.cpp
   src/features.cpp
   src/http_server.cpp
@@ -76,6 +79,7 @@ enable_testing()
 add_executable(scanner_tests
   tests/test_bundle_adjustment.cpp
   tests/test_camera_model.cpp
+  tests/test_colmap.cpp
   tests/test_config.cpp
   tests/test_epipolar.cpp
   tests/test_features.cpp
@@ -97,9 +101,14 @@ add_executable(scanner_tests
   tests/test_triangulation.cpp
   tests/test_visibility.cpp
 )
+# Ejecutable falso de COLMAP para probar el ejecutor de procesos (Sprint 4).
+add_executable(colmap_stub tests/colmap_stub.cpp)
+
 target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
+add_dependencies(scanner_tests colmap_stub)
 target_compile_definitions(scanner_tests PRIVATE
-  ESCANER3D_DEFAULT_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/config.default.json")
+  ESCANER3D_DEFAULT_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/config.default.json"
+  COLMAP_STUB_PATH="$<TARGET_FILE:colmap_stub>")
 include(GoogleTest)
 gtest_discover_tests(scanner_tests DISCOVERY_MODE PRE_TEST)
 
