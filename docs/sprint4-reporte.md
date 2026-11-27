@@ -238,14 +238,21 @@ Lo que se ve, con honestidad:
   - el detalle automático de `--render` puede caer en el fondo; en la ventana se elige con clic.
 - **Memoria:** densificar 30 imágenes a 1600 px con otros programas abiertos agotó la RAM una vez.
 
-## 8. Verificación visual del usuario (pendiente)
+## 8. Verificación visual del usuario (hecha)
 
 La sección 5.2 del documento del sprint pide al usuario que abra `sessions\20261121-142259-tenis\model\model.obj` en MeshLab, con su textura, y diga:
 - si reconoce el objeto;
 - si la textura está bien puesta;
 - si las proporciones son razonables.
 
-**Pendiente: no confirmada.** Tampoco se usó `--scale-ref`, así que no hay comprobación de escala con una medida real.
+**Confirmada por el usuario.** Su respuesta, textual:
+
+> "ya lo revisé, se reconstruye de forma muy acertada el tenis, solo flaquea mucho por la parte de atrás, pero eso era evidente debido a la luz que tiene la imagen, haré más pruebas más tarde, de momento el trabajo está bien"
+
+- **Lo que confirma:** se reconoce el objeto y la reconstrucción del frente es acertada.
+- **La parte de atrás es débil:** coincide con la cobertura de la sección 4.6 (las fotos del lado opuesto no se registraron, en parte por el contraluz).
+- **No comentó por separado** la textura ni las proporciones.
+- **Escala:** no se usó `--scale-ref`, así que no hay comprobación con una medida real.
 
 ## 9. Datos objetivos para la Review y la Retrospective
 
