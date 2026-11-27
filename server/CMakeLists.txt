@@ -32,6 +32,7 @@ add_library(scanner_core STATIC
   src/matching_params.cpp
   src/matching_report.cpp
   src/pairing.cpp
+  src/pipeline_params.cpp
   src/quality.cpp
   src/reconstruction.cpp
   src/reconstruction_io.cpp
