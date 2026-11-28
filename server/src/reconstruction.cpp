@@ -2,6 +2,7 @@
 
 #include "registration.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <map>
 #include <queue>
@@ -70,6 +71,74 @@ void normalizeScale(Reconstruction& rec, int i, int j) {
   for (Point3D& p : rec.points) p.xyz *= s;
 }
 
+// Corrección posterior al Sprint 3 (sesión llamav2): si con la K inicial (focal del EXIF)
+// el par inicial no deja ningún punto dentro de los controles de HU-14, se prueba una
+// rejilla de factores de focal SOLO para ese par. Se elige el factor con más puntos
+// triangulados (desempate: menor error mediano). Los umbrales no cambian; después el
+// bundle adjustment refina f como siempre. Devuelve los puntos triangulados.
+int searchInitialFocal(SfmResult& res, const SfmInput& input, const ReconstructionParams& params,
+                       const std::function<void(const std::string&)>& log) {
+  const PairCandidate* pair = nullptr;
+  for (const PairCandidate& p : input.pairs)
+    if (p.i == res.init.i && p.j == res.init.j) pair = &p;
+  if (!pair) return 0;
+  const CameraModel& c0 = input.camera;
+  const cv::Matx33d K0(c0.f, 0, c0.cx, 0, c0.f, c0.cy, 0, 0, 1);
+  const cv::Matx33d F = K0.inv().t() * pair->E * K0.inv();  // E del Sprint 2 se calculó con K0
+
+  Reconstruction best;
+  RelativePose best_rel;
+  int best_points = 0;
+  double best_error = 0, best_factor = 1.0;
+  for (int k = 0;; ++k) {
+    const double factor = params.init_focal_factor_min + k * params.init_focal_factor_step;
+    if (factor > params.init_focal_factor_max + 1e-9) break;
+    CameraModel c = c0;
+    c.f = c0.f * factor;
+    const cv::Matx33d K(c.f, 0, c.cx, 0, c.f, c.cy, 0, 0, 1);
+    PairCandidate p = *pair;
+    p.E = K.t() * F * K;
+    const RelativePose rel = recoverRelativePose(c, p);
+    FocalTrial trial;
+    trial.factor = factor;
+    Reconstruction trial_rec = res.rec;
+    if (rel.ok) {
+      trial_rec.camera = c;
+      trial_rec.cameras[res.init.i].pose = Pose{};
+      trial_rec.cameras[res.init.j].pose = rel.pose_j;
+      trial_rec.points.clear();
+      trial_rec.reindexTracks();
+      trial.points = triangulateTracks(trial_rec, params);
+      std::vector<double> errors;
+      for (const Point3D& pt : trial_rec.points)
+        for (const Observation& o : pt.observations)
+          errors.push_back(reprojectionError(c, trial_rec.cameras.at(o.image).pose, pt.xyz, o.xy));
+      if (!errors.empty()) {
+        std::nth_element(errors.begin(), errors.begin() + errors.size() / 2, errors.end());
+        trial.median_error_px = errors[errors.size() / 2];
+      }
+    }
+    res.focal_trials.push_back(trial);
+    if (trial.points > best_points || (trial.points == best_points && trial.points > 0 && trial.median_error_px < best_error)) {
+      best_points = trial.points;
+      best_error = trial.median_error_px;
+      best_factor = factor;
+      best = std::move(trial_rec);
+      best_rel = rel;
+    }
+  }
+  char text[200];
+  std::snprintf(text, sizeof(text),
+                "búsqueda de focal del par inicial: %zu factores probados; elegido %.2f (f %.1f px), %d puntos, error mediano %.3f px",
+                res.focal_trials.size(), best_factor, c0.f * best_factor, best_points, best_error);
+  say(log, best_points > 0 ? std::string(text) : "búsqueda de focal del par inicial: ningún factor triangula puntos");
+  if (best_points == 0) return 0;
+  res.rec = std::move(best);
+  res.init.relative = best_rel;
+  res.init_focal_factor = best_factor;
+  return best_points;
+}
+
 }  // namespace
 
 SfmResult runIncrementalSfm(const SfmInput& input, const ReconstructionParams& params,
@@ -97,7 +166,13 @@ SfmResult runIncrementalSfm(const SfmInput& input, const ReconstructionParams& p
   }
 
   // 2. Triangulación inicial (HU-14).
-  const int initial_points = triangulateTracks(rec, params);
+  int initial_points = triangulateTracks(rec, params);
+  if (initial_points == 0 && params.init_focal_search) {
+    say(log, "par inicial " + std::to_string(res.init.i) + "-" + std::to_string(res.init.j) +
+                 ": 0 puntos con la focal inicial");
+    initial_points = searchInitialFocal(res, input, params, log);
+  }
+  res.init_points = initial_points;
   say(log, "par inicial " + std::to_string(res.init.i) + "-" + std::to_string(res.init.j) + ": " +
                std::to_string(initial_points) + " puntos");
   runBundle(res, params, "incremental", log);

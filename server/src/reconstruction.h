@@ -19,9 +19,18 @@ struct SfmInput {
   std::vector<Track> tracks;
 };
 
+struct FocalTrial {
+  double factor = 1;
+  int points = 0;               // puntos del par inicial dentro de los controles de HU-14
+  double median_error_px = 0;   // error de reproyección mediano de esos puntos
+};
+
 struct SfmResult {
   Reconstruction rec;
   InitialPair init;
+  int init_points = 0;                // puntos triangulados del par inicial (con la focal elegida)
+  double init_focal_factor = 1.0;     // factor aplicado a la focal inicial (1 si no hizo falta la rejilla)
+  std::vector<FocalTrial> focal_trials;  // rejilla probada (vacía si la K original triangula)
   std::vector<BundleReport> ba_runs;  // en orden de ejecución
   FilterStats filter_first;           // filtrado tras el BA final (HU-17)
   FilterStats filter_final;           // filtrado tras el segundo BA

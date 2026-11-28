@@ -12,7 +12,8 @@ const std::set<std::string> kKnownKeys = {
     "tri_min_angle_deg",       "max_reproj_error_px",  "pnp_ransac_threshold_px",
     "pnp_confidence",          "pnp_min_inliers",      "min_views",
     "ba_every",                "ba_max_iterations",    "huber_delta_px",
-    "refine_focal",            "refine_distortion"};
+    "refine_focal",            "refine_distortion",    "init_focal_search",
+    "init_focal_factor_min",   "init_focal_factor_max", "init_focal_factor_step"};
 
 std::string name(const char* key) { return std::string("reconstruction.") + key; }
 
@@ -73,6 +74,15 @@ ReconstructionParams applyReconstructionJson(ReconstructionParams p, const json&
   if (j.contains("huber_delta_px")) p.huber_delta_px = numberIn(j, "huber_delta_px", 0, kInf, true, false);
   if (j.contains("refine_focal")) p.refine_focal = boolean(j, "refine_focal");
   if (j.contains("refine_distortion")) p.refine_distortion = boolean(j, "refine_distortion");
+  if (j.contains("init_focal_search")) p.init_focal_search = boolean(j, "init_focal_search");
+  if (j.contains("init_focal_factor_min"))
+    p.init_focal_factor_min = numberIn(j, "init_focal_factor_min", 0, 10, true, false);
+  if (j.contains("init_focal_factor_max"))
+    p.init_focal_factor_max = numberIn(j, "init_focal_factor_max", 0, 10, true, false);
+  if (j.contains("init_focal_factor_step"))
+    p.init_focal_factor_step = numberIn(j, "init_focal_factor_step", 0, 10, true, false);
+  if (p.init_focal_factor_min > p.init_focal_factor_max)
+    throw std::invalid_argument("reconstruction.init_focal_factor_min no puede ser mayor que init_focal_factor_max");
   return p;
 }
 
@@ -90,7 +100,11 @@ json toJson(const ReconstructionParams& p) {
               {"ba_max_iterations", p.ba_max_iterations},
               {"huber_delta_px", p.huber_delta_px},
               {"refine_focal", p.refine_focal},
-              {"refine_distortion", p.refine_distortion}};
+              {"refine_distortion", p.refine_distortion},
+              {"init_focal_search", p.init_focal_search},
+              {"init_focal_factor_min", p.init_focal_factor_min},
+              {"init_focal_factor_max", p.init_focal_factor_max},
+              {"init_focal_factor_step", p.init_focal_factor_step}};
 }
 
 bool isReconstructionOverride(const std::string& option) { return !keyFromOption(option).empty(); }

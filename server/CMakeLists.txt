@@ -100,6 +100,7 @@ add_executable(scanner_tests
   tests/test_config.cpp
   tests/test_epipolar.cpp
   tests/test_features.cpp
+  tests/test_focal_search.cpp
   tests/test_http_integration.cpp
   tests/test_initialization.cpp
   tests/test_intrinsics.cpp
@@ -130,7 +131,8 @@ target_link_libraries(scanner_tests PRIVATE scanner_core GTest::gtest_main)
 add_dependencies(scanner_tests colmap_stub)
 target_compile_definitions(scanner_tests PRIVATE
   ESCANER3D_DEFAULT_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/config.default.json"
-  COLMAP_STUB_PATH="$<TARGET_FILE:colmap_stub>")
+  COLMAP_STUB_PATH="$<TARGET_FILE:colmap_stub>"
+  ESCANER3D_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
 include(GoogleTest)
 gtest_discover_tests(scanner_tests DISCOVERY_MODE PRE_TEST)
 

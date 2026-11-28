@@ -252,6 +252,14 @@ SessionReconstructionResult runSessionReconstruction(const fs::path& session_dir
   report.init_i = out.sfm.init.i;
   report.init_j = out.sfm.init.j;
   report.init_evaluated = out.sfm.init.evaluated;
+  report.init_points = out.sfm.init_points;
+  report.init_focal_factor = out.sfm.init_focal_factor;
+  for (const FocalTrial& trial : out.sfm.focal_trials)
+    report.focal_search.push_back(
+        json{{"factor", trial.factor}, {"points", trial.points}, {"median_error_px", trial.median_error_px}});
+  if (!out.sfm.focal_trials.empty())
+    report.warnings.push_back("la focal inicial no triangulaba ningún punto del par inicial; se usó el factor " +
+                              json(out.sfm.init_focal_factor).dump() + " de la rejilla");
   for (const auto& [img, cam] : rec.cameras) {
     CameraSummary c;
     c.index = img;
