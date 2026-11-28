@@ -56,9 +56,47 @@ if ($Poses -eq 'ours' -and -not $SkipAccuracy) {
   $stages += @{ Name = 'Precisión frente a COLMAP (HU-24)'; Tool = 'scanner_accuracy'; Args = @('--session', $Session) + $colmapArgs }
 }
 
+# Mínimo de cámaras registradas por el Sprint 3 para seguir a la densificación.
+$MinRegisteredCameras = 4
+
+# Devuelve $null si la reconstrucción dispersa alcanza para densificar; si no, el motivo.
+function Test-SparseReconstruction([string]$sessionDir) {
+  $file = Join-Path $sessionDir 'reconstruction\reconstruction_report.json'
+  if (-not (Test-Path $file)) { return "no existe $file (ejecuta antes scanner_reconstruct)." }
+  $r = Get-Content $file -Raw -Encoding UTF8 | ConvertFrom-Json
+  $registered = [int]$r.summary.cameras_registered
+  if ($registered -ge $MinRegisteredCameras) { return $null }
+  $lines = @("La reconstrucción dispersa registró $registered de $($r.summary.cameras_candidates) cámaras candidatas; hacen falta al menos $MinRegisteredCameras para densificar.")
+  if ($r.initial_pair.i -lt 0) {
+    $lines += 'Motivo: ningún par cumplió las condiciones del par inicial (HU-13):'
+    foreach ($e in $r.initial_pair.evaluated | Select-Object -First 5) {
+      $lines += ("  par {0}-{1}: {2} inliers, ángulo mediano {3:N2}°, {4}" -f $e.i, $e.j, $e.n_inliers, $e.median_angle_deg, $e.result)
+    }
+  } elseif ([int]$r.points.before_filter -eq 0) {
+    $lines += ("Motivo: el par inicial {0}-{1} se eligió, pero no dejó ningún punto triangulado: todas sus pistas fallaron los controles de HU-14 (detrás de la cámara, ángulo < tri_min_angle_deg o error > max_reproj_error_px = {2} px con la K inicial, f = {3:N1} px)." -f $r.initial_pair.i, $r.initial_pair.j, $r.params.max_reproj_error_px, $r.intrinsics.initial.f)
+    $lines += 'Sin puntos 3D no hay correspondencias 2D-3D para registrar las demás cámaras con PnP.'
+  } else {
+    $lines += "Motivo: el registro con PnP se detuvo; las cámaras restantes no alcanzaron pnp_min_inliers = $($r.params.pnp_min_inliers) correspondencias 2D-3D."
+  }
+  $reasons = $r.cameras | Where-Object { -not $_.registered } | Group-Object reason | ForEach-Object { "$($_.Name): $($_.Count)" }
+  if ($reasons) { $lines += "Cámaras no registradas por motivo: $($reasons -join ', ')." }
+  $lines += "Detalle en $file y en la salida de scanner_reconstruct de arriba."
+  return ($lines -join "`n")
+}
+
 $summary = @()
 $total = [Diagnostics.Stopwatch]::StartNew()
 foreach ($s in $stages) {
+  if ($s.Tool -eq 'scanner_dense' -and $Poses -eq 'ours') {
+    $problem = Test-SparseReconstruction $Session
+    if ($problem) {
+      $summary += [pscustomobject]@{ Etapa = $s.Name; Segundos = 0; Resultado = 'no ejecutada' }
+      $summary | Format-Table -AutoSize | Out-String | Write-Host
+      Write-Host "Pipeline detenido antes de la densificación." -ForegroundColor Red
+      Write-Host $problem -ForegroundColor Red
+      exit 4
+    }
+  }
   Write-Host "`n=== $($s.Name): $($s.Tool) $($s.Args -join ' ')" -ForegroundColor Cyan
   $watch = [Diagnostics.Stopwatch]::StartNew()
   & (Join-Path $bin "$($s.Tool).exe") @($s.Args)
