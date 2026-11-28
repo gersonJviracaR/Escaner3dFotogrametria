@@ -25,6 +25,12 @@ struct ReconstructionParams {
   double huber_delta_px = 1.0;
   bool refine_focal = true;
   bool refine_distortion = true;
+  // Corrección posterior al Sprint 3 (sesión llamav2): si la K inicial no triangula ningún
+  // punto del par inicial, se prueba una rejilla de factores de focal solo para ese par.
+  bool init_focal_search = true;
+  double init_focal_factor_min = 0.8;
+  double init_focal_factor_max = 1.4;
+  double init_focal_factor_step = 0.05;
 };
 
 // Aplica sobre `base` solo los campos presentes. Lanza std::invalid_argument con un

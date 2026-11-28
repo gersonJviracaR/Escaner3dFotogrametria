@@ -52,6 +52,9 @@ struct ReconstructionReport {
   std::vector<InitialPairChoice> init_evaluated;
   int init_i = -1;
   int init_j = -1;
+  int init_points = 0;                  // puntos triangulados del par inicial
+  double init_focal_factor = 1.0;       // factor de focal usado en el par inicial
+  nlohmann::json focal_search = nlohmann::json::array();  // rejilla probada (vacía si no hizo falta)
   std::vector<std::pair<int, std::string>> excluded_photos;  // fuera del pipeline (p. ej. calidad)
   std::vector<CameraSummary> cameras;
   ErrorStats global_before;

@@ -31,6 +31,7 @@ struct RingOptions {
   bool separate_component = false;  // fotos 20 y 21: solo emparejadas entre sí
   double k1 = 0;                    // distorsión verdadera de la cámara
   double k2 = 0;
+  bool phone_camera = false;        // cámara como la del celular: f 3000 px, 4000x3000
 };
 
 inline void addPair(SfmScene& s, std::vector<PairMatches>& matches, int i, int j) {
@@ -66,6 +67,13 @@ inline void addPair(SfmScene& s, std::vector<PairMatches>& matches, int i, int j
 inline SfmScene makeRingScene(const RingOptions& o = {}) {
   SfmScene s;
   s.camera = camera();
+  if (o.phone_camera) {
+    s.camera.f = 3000;
+    s.camera.cx = 2000;
+    s.camera.cy = 1500;
+    s.camera.width = 4000;
+    s.camera.height = 3000;
+  }
   s.camera.k1 = o.k1;
   s.camera.k2 = o.k2;
   s.input.camera = s.camera;
@@ -73,7 +81,8 @@ inline SfmScene makeRingScene(const RingOptions& o = {}) {
   s.input.camera.k2 = 0;
   const std::vector<Pose> ring_poses = ring(o.n_cameras, 6.0, o.step_deg);
   for (int k = 0; k < o.n_cameras; ++k) s.poses[k + 1] = ring_poses[static_cast<std::size_t>(k)];
-  s.points = randomPoints(o.n_points, o.seed, 1.5);
+  // Con la cámara de celular los puntos llenan la imagen, como el objeto en una foto real.
+  s.points = randomPoints(o.n_points, o.seed, o.phone_camera ? 3.5 : 1.5);
   cv::RNG rng(o.seed + 1);
 
   auto observeAll = [&](int image, int from, int to) {

@@ -377,3 +377,19 @@ Cada herramienta escribe su sección sin borrar las demás:
 - Una imagen de `viewer.width` × `viewer.height` con dos vistas: **general** (órbita alrededor del centroide) y **detalle** (zoom ×4 sobre el punto del modelo más cercano al centro de la vista general, o sobre el punto elegido con clic en la ventana).
 - Renderizado por software con z-buffer: los puntos son cuadrados de 2×2 con su color; los triángulos llevan la textura del atlas por coordenadas baricéntricas corregidas por perspectiva.
 - Los centros de cámara se dibujan en magenta.
+
+### Búsqueda de focal del par inicial (v1.0.1)
+
+`reconstruction` tiene cuatro claves nuevas, descritas en `docs/sprint3-reporte.md`, sección «Corrección posterior»:
+
+| Clave | Por defecto |
+|---|---|
+| `init_focal_search` | true |
+| `init_focal_factor_min` | 0,8 |
+| `init_focal_factor_max` | 1,4 |
+| `init_focal_factor_step` | 0,05 |
+
+`reconstruction_report.json` agrega en `initial_pair` tres campos:
+- `points`: puntos triangulados del par inicial;
+- `focal_factor`: 1 si no hizo falta la rejilla;
+- `focal_search`: lista de `{factor, points, median_error_px}`, vacía si la K original triangulaba.

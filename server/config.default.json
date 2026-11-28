@@ -40,7 +40,11 @@
     "ba_max_iterations": 100,
     "huber_delta_px": 1.0,
     "refine_focal": true,
-    "refine_distortion": true
+    "refine_distortion": true,
+    "init_focal_search": true,
+    "init_focal_factor_min": 0.8,
+    "init_focal_factor_max": 1.4,
+    "init_focal_factor_step": 0.05
   },
   "dense": { "colmap_path": "", "max_image_size": 1600, "geom_consistency": true },
   "mesh": { "poisson_depth": 9, "trim_density": 7.0, "min_component_faces": 100 },
