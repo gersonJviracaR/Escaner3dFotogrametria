@@ -290,3 +290,85 @@ La sección 5.2 del documento del sprint pide al usuario que abra `sessions\2026
 ### Opiniones del equipo
 
 *(Para completar por el equipo en la Review y la Retrospective.)*
+
+## Corrección posterior (v1.0.1): búsqueda de focal del par inicial
+
+Es una **corrección posterior** al cierre del Sprint 4 (`v1.0`), autorizada por el usuario el 28/11/2026 y encontrada con la sesión `20261128-115016-llamav2` (41 fotos de una llama, el mismo Poco X3 Pro). Se publicó como `v1.0.1`.
+
+### Causa
+
+- El emparejamiento de llamav2 era muy bueno:
+  - 41 de 41 fotos aceptadas;
+  - 119 de 126 pares aceptados (los 7 rechazados, por `razon_inliers_baja`);
+  - grafo de vistas **conexo**.
+- Pero la reconstrucción registraba **2 de 41 cámaras**:
+  - el par inicial 9-10 (1314 inliers, ángulo mediano 7,1°, 100 % de los puntos delante) **no triangulaba ningún punto**;
+  - todas sus pistas fallaban los controles de HU-14 por `error_alto`, con errores de 8–9 px y límite de 2 px;
+  - sin puntos 3D, ninguna otra cámara se podía registrar con PnP, y la densificación terminaba con 0 puntos.
+- El motivo es que la K inicial (focal del EXIF: 2888,8 px, sin distorsión) estaba demasiado lejos de la real:
+  - el bundle adjustment converge a f = 3216 px, **+11,3 %**, y k1 = −0,115;
+  - la retriangulación que se agregó en el Sprint 3 nunca llegaba a actuar, porque requiere al menos un primer BA con puntos.
+- En `tenis` (f real +6,6 %) sí pasaban algunos puntos, por eso no se notó.
+- **No es un problema de patrones repetidos:** el emparejamiento de llamav2 era bueno.
+
+### Corrección
+
+- Primero se triangula el par inicial con la K actual (factor 1,0), exactamente como antes.
+- **Solo si deja 0 puntos**, se prueba una rejilla de factores de focal para ese par:
+  - `init_focal_factor_min` 0,8, `init_focal_factor_max` 1,4, `init_focal_factor_step` 0,05;
+  - E se convierte con `F = K₀⁻ᵀ E K₀⁻¹` y `E' = K'ᵀ F K'`.
+- Se elige el factor con más puntos dentro de los mismos controles; en caso de empate, el de menor error mediano.
+- Después el bundle adjustment refina f como siempre.
+- Se activa con `init_focal_search` (true por defecto).
+- **No cambia `max_reproj_error_px` ni ningún otro umbral.**
+- La rejilla probada queda en `reconstruction_report.json` (`initial_pair.focal_search`).
+
+Curva real de llamav2, par 9-10 (puntos que pasan los controles):
+
+| Factor | 0,80 | 0,85–1,00 | 1,05 | 1,10 | **1,15** | 1,20 | 1,25 | 1,30 | 1,35 | 1,40 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Puntos | 3 | 0 | 1 | 231 | **489** | 373 | 279 | 270 | 232 | 202 |
+
+**Pruebas** (5 nuevas, 245 en total, todas verdes):
+- Configuración.
+- Par real 9-10 de llamav2 como dato de prueba (`server/tests/data/llamav2_par_009_010.*`):
+  - sin la búsqueda, 0 puntos;
+  - con ella, factor entre 1,10 y 1,20 y más de 300 puntos;
+  - con la rejilla acotada a 0,9–1,0, sigue en 0.
+- Escena sintética con K correcta: la rejilla no se activa y el resultado es el mismo.
+- **Escena sintética de focal errónea:** se intentó una de ±15 %, como estaba pedido, pero en una escena pinhole ideal un error de focal de ±15 % (y hasta ±30 %, con distorsión o con pasos de 10°) **no** deja al par sin puntos, porque con F exacta la pose de dos vistas lo absorbe. Por eso el caso que reproduce el fallo usa los datos reales.
+
+### Antes y después (`scripts\run-pipeline.ps1`, mismos parámetros salvo la corrección)
+
+| | llamav2 antes | llamav2 después | tenis antes | tenis después |
+|---|---|---|---|---|
+| Rejilla de focal | — | activada: factor 1,15 (f 3322 px), 489 puntos | — | **no activada** (factor 1,0) |
+| Cámaras registradas | **2 de 41** | **41 de 41** | 11 de 34 | 11 de 34 |
+| Puntos dispersos finales | 0 | 6628 | 734 | 734 |
+| RMS final | — | 0,726 px | 0,497 px | 0,497 px |
+| f final | 2888,8 (sin BA útil) | 3216,0 px | 3079,3 px | 3079,3 px |
+| Pipeline | se detenía antes de densificar (guardia de `run-pipeline.ps1`) | completo en 2512 s | completo | completo en 86,6 s |
+
+**Resultado completo de llamav2 después de la corrección:**
+
+| Etapa | Resultado |
+|---|---|
+| Emparejamiento | 119 de 126 pares, 102,8 s |
+| Nube densa | 616 004 puntos (`patch_match_stereo`: 2149 s con 41 imágenes a 1600 px) |
+| Malla | 21 757 vértices y 42 905 caras, 12 componentes, abierta (581 aristas abiertas) |
+| Textura | **79,9 %** de las caras; atlas de 4096×3623, cartas al 0,40 |
+| Precisión frente a COLMAP | COLMAP registra 41 de 41; las 41 son comunes |
+
+Detalle de la precisión frente a COLMAP:
+- posición: media 1,29 %, RMS 1,52 % y máximo 3,29 % del radio del anillo;
+- rotación: media 0,93° y máximo 1,74°;
+- f: 3216 frente a 3125 px (+2,9 %);
+- reproyección: RMS 0,73 px propia frente a 1,49 px de COLMAP.
+
+Con el anillo completo, las diferencias frente a COLMAP son mayores que en el arco de 11 cámaras de `tenis`, pero siguen por debajo del 2 % del radio y de 2°.
+
+**`tenis` después de la corrección:**
+- la parte dispersa es idéntica (la rejilla no se activa);
+- las etapas con COLMAP varían un poco entre corridas (nube densa de 113 185 frente a 113 172 puntos) porque se regeneran.
+
+También se agregó una guardia en `run-pipeline.ps1`: si la reconstrucción dispersa registra menos de 4 cámaras, el pipeline se detiene antes de densificar (código 4) e indica el motivo.
